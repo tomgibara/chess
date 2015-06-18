@@ -7,6 +7,10 @@ class MutableSquares extends Squares {
 
 	MutableSquares() { }
 	
+	MutableSquares(long squares) {
+		super(squares);
+	}
+	
 	MutableSquares(Collection<Square> other) {
 		super(other);
 	}

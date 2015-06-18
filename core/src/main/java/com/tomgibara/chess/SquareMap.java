@@ -45,6 +45,19 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		return sum;
 	}
 	
+	private static Squares squares(Store<?> store) {
+		// common special case
+		if (store.size() == 0) {
+			return store.isMutable() ? new MutableSquares() : Squares.empty();
+		}
+		
+		long squares = 0L;
+		for (int i = 0; i < 64; i++) {
+			if (store.get(i) != null) squares |= 1L << i;
+		}
+		return store.isMutable() ? new MutableSquares(squares) : new Squares(squares);
+	}
+
 	private static <V> Store<V> newImmutableStore(Store<V> store) {
 		return new Store<V>() {
 			
@@ -154,29 +167,33 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	
 	private final Store<V> store;
 	private EntrySet entrySet = null;
-	private Squares squares = null;
+	private final Squares squares;
 
 	public SquareMap(Class<? extends V> type) {
 		if (type == null) throw new IllegalArgumentException("null type");
 		V[] newArray = (V[]) Array.newInstance(type, 64);
 		store = new ArrayStore<V>(newArray, 0);
+		squares = squares(store);
 	}
 	
 	public SquareMap(Store<V> store) {
 		if (store == null) throw new IllegalArgumentException("null store");
 		this.store = store;
+		squares = squares(store);
 	}
 	
 	// must be length 64
 	SquareMap(V[] values, int size) {
 		store = new ArrayStore<V>(values, size);
+		squares = squares(store);
 	}
 	
 	// must be length 64
 	SquareMap(V[] values) {
 		store = new ArrayStore<V>(values);
+		squares = squares(store);
 	}
-	
+
 	public SquareMap<V> immutable() {
 		return store.isMutable() ? new SquareMap<>(store.immutable()) : this;
 	}
@@ -188,7 +205,9 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	@Override
 	public V get(Object key) {
 		if (!(key instanceof Square)) return null;
-		return get( ((Square) key).ordinal );
+		Square sqr = (Square) key;
+		if (store.isMutable() && !squares.contains(sqr)) return null;
+		return get(sqr.ordinal);
 	}
 	
 	@Override
@@ -254,10 +273,7 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	}
 	
 	@Override
-	//TODO can we support mutability?
 	public Squares keySet() {
-		if (store.isMutable()) return squares();
-		if (squares == null) squares = squares();
 		return squares;
 	}
 	
@@ -266,15 +282,24 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		return entrySet == null ? entrySet = new EntrySet() : entrySet;
 	}
 
-	private Squares squares() {
-		long squares = 0L;
-		for (int i = 0; i < 64; i++) {
-			if (get(i) != null) squares |= 1L << i;
+	@Override
+	public boolean equals(Object o) {
+		if (o == this) return true;
+		// optimize for comparison with other square maps - a common case
+		if (o instanceof SquareMap<?>) {
+			SquareMap<?> that = (SquareMap<?>) o;
+			if (this.store.valueType() != that.store.valueType()) return false;
+			if (!this.squares.equals(that.squares)) return false;
+			for (int i = 0; i < 64; i++) {
+				if (!Objects.equals(this.store.get(i), that.store.get(i))) {
+					return false;
+				}
+			}
+			return true;
 		}
-		return new Squares(squares);
-
+		return super.equals(o);
 	}
-
+	
 	private V get(int ordinal) {
 		return store.get(ordinal);
 	}
