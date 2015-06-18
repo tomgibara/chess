@@ -68,6 +68,11 @@ public class Squares extends AbstractSet<Square> {
 		return squares.getClass() == Squares.class ? (Squares) squares : new Squares(squares);
 	}
 
+	public static Squares immutable(Squares squares) {
+		if (squares == null) throw new IllegalArgumentException("null squares");
+		return squares.getClass() == Squares.class ? squares : new Squares(squares.squares);
+	}
+
 	public static Squares immutable(Square... squares) {
 		return new Squares( maskSquares(squares) );
 	}
