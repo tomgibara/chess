@@ -66,13 +66,13 @@ public class BoardInfoTest extends TestCase {
 	
 	public void testStopCheck() {
 		Board board = Notation.parseFENBoard("8/3k2Q1/8/4qn2/8/3K4/8/8");
-		List<Move> moves = board.getOccupiedArea().on(board).availableMoves(MoveContraint.defaultBlack);
+		List<Move> moves = board.pieces.keySet().asArea().on(board).availableMoves(MoveContraint.defaultBlack);
 		System.out.println("CHECK SAVERS " + moves);
 	}
 	
 	public void testEnPassant() {
 		Board board = Notation.parseFENBoard("4k3/8/8/8/pP6/8/8/4K3");
-		BoardArea area = board.getOccupiedArea().on(board);
+		BoardArea area = board.pieces.keySet().asArea().on(board);
 		List<Move> moves1 = area.availableMoves(new MoveContraint(Colour.BLACK, false, false, File.FL_B));
 		assertTrue(moves1.contains(move("a4-b3")));
 		List<Move> moves2 = area.availableMoves(new MoveContraint(Colour.BLACK, false, false, null));

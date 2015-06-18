@@ -65,7 +65,7 @@ public class BoardInfo {
 	}
 
 	public int countPieces() {
-		return pieceCount < 0 ? pieceCount = board.getOccupiedArea().getSquares().size() : pieceCount;
+		return pieceCount < 0 ? pieceCount = board.pieces.keySet().size() : pieceCount;
 	}
 	
 	// squares
@@ -77,7 +77,7 @@ public class BoardInfo {
 
 	// convenience method
 	public Squares occupiedSquares() {
-		return board.getOccupiedArea().getSquares();
+		return board.pieces.keySet();
 	}
 	
 	public Squares squaresOccupiedBy(ColouredPiece piece) {
@@ -199,9 +199,10 @@ public class BoardInfo {
 				SquareMap<Move> map = Move.newMoveMap();
 				//TODO want to be able to intersect with occupied squares of opposing colour
 				// would remove first two if clauses
+				SquareMap<ColouredPiece> pieces = board.pieces;
 				Move.possibleMovesTo(square).forEach(m -> {
 					Square s = m.from;
-					ColouredPiece p = board.pieceAt(s);
+					ColouredPiece p = pieces.get(s);
 					if (
 							p != null &&
 							p.colour != this.colour &&
@@ -241,7 +242,7 @@ public class BoardInfo {
 		
 		PinAnalyzer(Square square) {
 			targetSquare = square;
-			targetPiece = board.pieceAt(square);
+			targetPiece = board.pieces.get(square);
 			if (targetPiece != null) {
 				Colour targetColour = targetPiece.colour;
 				attackColour = targetColour.opposite();

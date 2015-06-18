@@ -323,6 +323,9 @@ public final class Move {
 			map = new SquareMap<Move>(new SquareMap.Store<Move>() {
 
 				@Override
+				public Class<? extends Move> valueType() { return Move.class; }
+
+				@Override
 				public Move get(int index) { return moves[ptr(index)]; }
 
 				@Override
@@ -393,26 +396,28 @@ public final class Move {
 		void populateMoves(BoardMoves moves, Squares checkers, Squares interpose) {
 			Board board = moves.board;
 			MoveContraint constraint = moves.constraint;
-			ColouredPiece piece = board.pieceAt(square);
+			SquareMap<ColouredPiece> pieces = board.pieces;
+			ColouredPiece piece = pieces.get(square);
+			Squares occupied = pieces.keySet();
 
 			if (checkers.isEmpty() || piece.piece == Piece.KING) {
 				//TODO optimize
 				for (Move move : this) { // regular case
 					if (!move.isPossibleFor(piece)) continue; // piece cannot move in that way
-					ColouredPiece target = board.pieceAt(move.to);
+					ColouredPiece target = pieces.get(move.to);
 					if (target != null && target.colour == piece.colour) continue; // piece cannot capture same colour
 					if (piece.piece == Piece.PAWN && move.isPawnCapture() == (target == null && move.to != constraint.enPassantSqr)) continue; // pawns must capture to move diagonally
-					if (board.getOccupiedArea().getSquares().intersects(move.intermediateSquares)) continue; // one or more pieces interposed
+					if (occupied.intersects(move.intermediateSquares)) continue; // one or more pieces interposed
 					if (piece.piece == Piece.KING) {
 						Colour attackColour = piece.colour.opposite();
-						if (isAttackedAfter(board, move, attackColour)) continue; // king cannot move into check
+						if (isAttackedAfter(pieces, occupied, move, attackColour)) continue; // king cannot move into check
 						if (move.isCastling()) {
 							if (!constraint.castlingSquares.contains(move.to)) continue; // cannot castle invalidly
 							if (!checkers.isEmpty()) continue; // cannot castle out of check
 							Move rookMove = move.inducedRookMove();
-							if (board.pieceAt(rookMove.from) != Piece.ROOK.coloured(constraint.toMove)) continue; // rook must be present
-							if (board.getOccupiedArea().getSquares().intersects( rookMove.intermediateSquares )) continue; // path must be clear for rook
-							if (isAttackedAfter(board, rookMove.from.to(move.intermediateSquares.only()), attackColour)) continue; // cannot pass through check
+							if (pieces.get(rookMove.from) != Piece.ROOK.coloured(constraint.toMove)) continue; // rook must be present
+							if (occupied.intersects( rookMove.intermediateSquares )) continue; // path must be clear for rook
+							if (isAttackedAfter(pieces, occupied, rookMove.from.to(move.intermediateSquares.only()), attackColour)) continue; // cannot pass through check
 						}
 					} else {
 						Interposition pin = board.getInfo().withColour(piece.colour).pinnedToKing().get(square);
@@ -424,7 +429,7 @@ public final class Move {
 				// we can try to interpose
 				for (Square i : interpose) {
 					Move move = Move.between(square, i);
-					if (move.isPossibleFor(piece) && !board.getOccupiedArea().getSquares().intersects(move.intermediateSquares)) {
+					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
 						moves.add(move);
 					}
 				}
@@ -432,21 +437,21 @@ public final class Move {
 				Square c = checkers.only();
 				if (c != null) {
 					Move move = Move.between(square, c);
-					if (move.isPossibleFor(piece) && !board.getOccupiedArea().getSquares().intersects(move.intermediateSquares)) {
+					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
 						moves.add(move);
 					}
 				}
 			}
 		}
 
-		private boolean isAttackedAfter(Board board, Move m, Colour attackColour) {
+		private boolean isAttackedAfter(SquareMap<ColouredPiece> pieces, Squares occupied, Move m, Colour attackColour) {
 			for (Move move : Move.possibleMovesTo(m.to)) {
-				ColouredPiece piece = board.pieceAt(move.from);
+				ColouredPiece piece = pieces.get(move.from);
 				if (
 						piece != null &&
 						piece.colour == attackColour &&
 						move.isPossibleFor(piece) &&
-						board.getOccupiedArea().getSquares().disjoint(move.intermediateSquares, m.from)
+						occupied.disjoint(move.intermediateSquares, m.from)
 				) return true;
 			}
 			return false;

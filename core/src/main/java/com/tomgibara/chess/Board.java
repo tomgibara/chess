@@ -49,24 +49,16 @@ public final class Board {
 	public static Board initial() {
 		return initial;
 	}
-	
-	private final ColouredPiece[] pieces;
-	private final Area occupiedArea;
+
+	public final SquareMap<ColouredPiece> pieces;
 	private BoardInfo info = null;
 	
 	private Board() {
-		pieces = new ColouredPiece[64];
-		occupiedArea = Area.empty();
+		pieces = new Arrangement().consume();
 	}
 	
 	Board(Arrangement arrangement) {
 		pieces = arrangement.consume();
-		occupiedArea = arrangement.occupiedSquares().asArea();
-	}
-	
-	//TODO replace with field access?
-	public Area getOccupiedArea() {
-		return occupiedArea;
 	}
 	
 	public BoardInfo getInfo() {
@@ -87,12 +79,12 @@ public final class Board {
 		if (this == obj) return true;
 		if (!(obj instanceof Board)) return false;
 		Board that = (Board) obj;
-		return Arrays.equals(this.pieces, that.pieces);
+		return this.pieces.equals( that.pieces );
 	}
 	
 	@Override
 	public int hashCode() {
-		return Arrays.hashCode(pieces);
+		return pieces.hashCode();
 	}
 	
 	public String toString() {
@@ -101,7 +93,7 @@ public final class Board {
 		StringBuilder sb = new StringBuilder(144);
 		for (int rank = 7; rank >= 0; rank--) {
 			for (int file = 0; file < 8; file++) {
-				ColouredPiece piece = pieceAt(Square.at(file, rank));
+				ColouredPiece piece = pieces.get(Square.at(file, rank));
 				sb.append(piece == null ? "  " : piece.toString());
 			}
 			sb.append(nl);
@@ -109,34 +101,32 @@ public final class Board {
 		return sb.toString();
 	}
 
-	ColouredPiece pieceAt(Square square) {
-		return pieces[square.ordinal];
-	}
-	
 	int[] countPieces() {
 		int[] counts = new int[12];
-		for (ColouredPiece piece : pieces) {
+		for (ColouredPiece piece : pieces.values()) {
 			if (piece == null) continue;
 			counts[piece.ordinal()] ++;
 		}
 		return counts;
 	}
 	
+	//TODO add efficient methods to SquareMap for this
 	Squares[] pieceSquares(int[] pieceCounts) {
 		Squares[] pieceSquares = new Squares[ColouredPiece.COUNT];
 		for (int i = 0; i < ColouredPiece.COUNT; i++) {
 			pieceSquares[i] = new MutableSquares();
 		}
-		occupiedArea.getSquares().forEach(
-				s -> pieceSquares[ pieces[s.ordinal].ordinal() ].add(s)
+		
+		pieces.keySet().forEach(
+				s -> pieceSquares[ pieces.get(s).ordinal() ].add(s)
 		);
 		return pieceSquares;
 	}
 
 	MutableSquares squaresOccupiedBy(Colour colour) {
 		MutableSquares squares = new MutableSquares();
-		occupiedArea.getSquares().forEach( s -> {
-			if (pieces[s.ordinal].colour == colour) squares.add(s);
+		pieces.keySet().forEach( s -> {
+			if (pieces.get(s).colour == colour) squares.add(s);
 		});
 		return squares;
 	}

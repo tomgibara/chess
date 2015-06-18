@@ -19,14 +19,14 @@ public final class BoardArea {
 	public ColouredPiece getPiece() {
 		Square square = areaAsSquare();
 		if (square == null) throw new IllegalStateException("area not a square");
-		return board.pieceAt(square);
+		return board.pieces.get(square);
 	}
 	
-	public BoardArea getOccupiedArea() {
-		Area intersection = board.getOccupiedArea().intersect(area);
-		return intersection == area ? this : new BoardArea(board, intersection);
-	}
-	
+//	public BoardArea getOccupiedArea() {
+//		Area intersection = board.pieces.keySet().intersect(area);
+//		return intersection == area ? this : new BoardArea(board, intersection);
+//	}
+//	
 	public BoardMoves availableMoves(MoveContraint constraint) {
 		if (constraint == null) throw new IllegalArgumentException("null constraint");
 		return new BoardMoves(board, area, constraint);
@@ -50,7 +50,7 @@ public final class BoardArea {
 	public BoardArea put(ColouredPiece piece) {
 		if (piece == null) throw new IllegalArgumentException("null piece");
 		Square square = area.getSquares().first();
-		if (piece == board.pieceAt(square)) return this;
+		if (piece == board.pieces.get(square)) return this;
 		return board.newArrangement().set(square, piece).toBoard().area(area);
 		
 	}

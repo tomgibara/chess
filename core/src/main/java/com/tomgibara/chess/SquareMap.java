@@ -15,6 +15,8 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 
 	public interface Store<V> {
 		
+		Class<? extends V> valueType();
+		
 		int size();
 		
 		V get(int index);
@@ -27,6 +29,14 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		default boolean isMutable() { return false; }
 		
 		default Store<V> immutable() { return isMutable() ? newImmutableStore(this) : this; }
+		
+		default Store<V> mutableCopy() {
+			V[] vs = (V[]) Array.newInstance(valueType(), 64);
+			for (int i = 0; i < 64; i++) {
+				vs[i] = get(i);
+			}
+			return new ArrayStore<V>(vs, size());
+		}
 	}
 
 	private static <V> int countNonNulls(V[] vs) {
@@ -37,6 +47,11 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	
 	private static <V> Store<V> newImmutableStore(Store<V> store) {
 		return new Store<V>() {
+			
+			@Override
+			public Class<? extends V> valueType() {
+				return store.valueType();
+			}
 
 			@Override
 			public int size() {
@@ -63,6 +78,11 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		ArrayStore(V[] values, int size) {
 			this.values = values;
 			this.size = size;
+		}
+		
+		@Override
+		public Class<? extends V> valueType() {
+			return (Class<? extends V>) values.getClass().getComponentType();
 		}
 
 		@Override
@@ -97,25 +117,41 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		
 		@Override
 		public Store<V> immutable() {
-			return immutableArrayStore(this);
+			return new ImmutableArrayStore<V>(this);
+		}
+		
+		@Override
+		public Store<V> mutableCopy() {
+			return new ArrayStore<V>(values.clone(), size);
 		}
 	}
 	
-	private static <V> Store<V> immutableArrayStore(ArrayStore<V> store) {
-		return new Store<V>() {
+	private static final class ImmutableArrayStore<V> implements Store<V> {
 
-			private final V[] values = store.values.clone();
-			private final int size = store.size;
+		private final V[] values;
+		private final int size;
 
-			@Override
-			public int size() { return size; }
+		ImmutableArrayStore(ArrayStore<V> store) {
+			values = store.values.clone();
+			size = store.size;
+		}
 
-			@Override
-			public V get(int index) { return values[index]; }
+		@Override
+		public Class<? extends V> valueType() {
+			return (Class<? extends V>) values.getClass().getComponentType();
+		}
 
-		};
+		@Override
+		public int size() { return size; }
+
+		@Override
+		public V get(int index) { return values[index]; }
+
+		@Override
+		public Store<V> mutableCopy() { return new ArrayStore<V>(values.clone(), size); }
+		
 	}
-
+	
 	private final Store<V> store;
 	private EntrySet entrySet = null;
 	private Squares squares = null;
@@ -136,8 +172,17 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		store = new ArrayStore<V>(values, size);
 	}
 	
+	// must be length 64
+	SquareMap(V[] values) {
+		store = new ArrayStore<V>(values);
+	}
+	
 	public SquareMap<V> immutable() {
 		return store.isMutable() ? new SquareMap<>(store.immutable()) : this;
+	}
+	
+	public SquareMap<V> mutableCopy() {
+		return new SquareMap<>(store.mutableCopy());
 	}
 	
 	@Override

@@ -1,27 +1,35 @@
 package com.tomgibara.chess;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 //TODO implement object methods
-//TODO base on SquareMap?
+//TODO replace with square map?
 public class Arrangement {
 
-	private final ColouredPiece[] pieces = new ColouredPiece[64];
+	private final SquareMap<ColouredPiece> pieces;
 	private boolean consumed = false;
 	
 	public Arrangement() {
+		pieces = new SquareMap<>(new ColouredPiece[64]);
 	}
 	
 	public Arrangement(ColouredPiece[] pieces) {
 		if (pieces == null) throw new IllegalArgumentException("null pieces");
 		if (pieces.length != 64) throw new IllegalArgumentException("invalid pieces");
-		System.arraycopy(pieces, 0, this.pieces, 0, 64);
+		this.pieces = new SquareMap<>(pieces.clone());
 	}
 
+	public Arrangement(SquareMap<ColouredPiece> pieces) {
+		if (pieces == null) throw new IllegalArgumentException("null pieces");
+		this.pieces = pieces.mutableCopy();
+	}
+
+	
 	public Arrangement set(Square square, ColouredPiece piece) {
 		if (square == null) throw new IllegalArgumentException("null square");
 		checkNotConsumed();
-		pieces[square.ordinal] = piece;
+		pieces.put(square, piece);
 		return this;
 	}
 	
@@ -32,7 +40,13 @@ public class Arrangement {
 		if (length > 0) {
 			int i = 0;
 			for (Iterator<Square> it = set.iterator(); i < length && it.hasNext(); i++) {
-				this.pieces[ it.next().ordinal ] = pieces[i];
+				Square square = it.next();
+				ColouredPiece piece = pieces[i];
+				if (piece == null) {
+					this.pieces.remove(square);
+				} else {
+					this.pieces.put(square, piece);
+				}
 			}
 		}
 		return this;
@@ -41,40 +55,33 @@ public class Arrangement {
 	public Arrangement fill(Squares set, ColouredPiece piece) {
 		if (set == null) throw new IllegalArgumentException("null set");
 		checkNotConsumed();
-		set.forEach(p -> pieces[p.ordinal] = piece);
+		set.forEach(s -> pieces.put(s, piece));
 		return this;
 	}
 	
 	public ColouredPiece get(Square square) {
 		if (square == null) throw new IllegalArgumentException("null square");
 		checkNotConsumed();
-		return pieces[square.ordinal];
+		return pieces.get(square);
 	}
 	
 	public Arrangement swap() {
 		checkNotConsumed();
-		for (int i = 0; i < pieces.length; i++) {
-			ColouredPiece piece = pieces[i];
-			if (piece != null) pieces[i] = piece.getSwapped();
-		}
+		pieces.forEach( (s, p) -> pieces.put(s, p.getSwapped()));
 		return this;
 	}
 	
 	public Squares occupiedSquares() {
-		long squares = 0L;
-		for (int i = 0; i < 64; i++) {
-			if (pieces[i] != null) squares |= 1L << i;
-		}
-		return new Squares(squares);
+		return pieces.keySet();
 	}
 
 	public Board toBoard() {
 		return new Board(this);
 	}
 	
-	ColouredPiece[] consume() {
+	SquareMap<ColouredPiece> consume() {
 		checkNotConsumed();
-		return pieces;
+		return pieces.immutable();
 	}
 	
 	private void checkNotConsumed() {
