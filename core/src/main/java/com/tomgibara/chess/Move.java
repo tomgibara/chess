@@ -189,8 +189,8 @@ public final class Move {
 			if (whiteCastle) flags |= WHITE_CASTLE;
 			if (blackCastle) flags |= BLACK_CASTLE;
 			
-			if (!king && !knight) { // never intermediate 
-				List<Square> list = new ArrayList<Square>(Math.max(adf, adr) - 1);
+			if (!king && !knight) { // never intermediate
+				MutableSquares squares = new MutableSquares();
 				File file = from.file;
 				Rank rank = from.rank;
 				File toFile = to.file;
@@ -199,9 +199,9 @@ public final class Move {
 					file = file.towards(toFile);
 					rank = rank.towards(toRank);
 					if (file == toFile && rank == toRank) break;
-					list.add(file.intersect(rank));
+					squares.add(file.intersect(rank));
 				}
-				inter = Squares.immutable(list);
+				inter = Squares.immutable(squares);
 			}
 		}
 
