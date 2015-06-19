@@ -16,12 +16,12 @@ public class BoardMoves extends AbstractList<Move> {
 	
 	public final Board board;
 	public final Area area;
-	public final MoveContraint constraint;
+	public final MoveConstraint constraint;
 	
 	private Move[] moves;
 	private int size = 0;
 	
-	BoardMoves(Board board, Area area, MoveContraint constraint) {
+	BoardMoves(Board board, Area area, MoveConstraint constraint) {
 		this.board = board;
 		this.area = area;
 		this.constraint = constraint;

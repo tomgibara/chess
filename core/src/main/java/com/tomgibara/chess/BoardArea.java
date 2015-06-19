@@ -27,7 +27,7 @@ public final class BoardArea {
 //		return intersection == area ? this : new BoardArea(board, intersection);
 //	}
 //	
-	public BoardMoves availableMoves(MoveContraint constraint) {
+	public BoardMoves availableMoves(MoveConstraint constraint) {
 		if (constraint == null) throw new IllegalArgumentException("null constraint");
 		return new BoardMoves(board, area, constraint);
 	}

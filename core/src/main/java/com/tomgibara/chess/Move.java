@@ -431,7 +431,7 @@ public final class Move implements Comparable<Move> {
 
 		void populateMoves(BoardMoves moves, Squares checkers, Squares interpose) {
 			Board board = moves.board;
-			MoveContraint constraint = moves.constraint;
+			MoveConstraint constraint = moves.constraint;
 			SquareMap<ColouredPiece> pieces = board.pieces;
 			ColouredPiece piece = pieces.get(square);
 			Squares occupied = pieces.keySet();

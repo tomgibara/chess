@@ -1,6 +1,6 @@
 package com.tomgibara.chess;
 
-public final class MoveContraint {
+public final class MoveConstraint {
 
 	private static int ordinal(Colour toMove, boolean mayCastleC, boolean mayCastleG) {
 		int ordinal = 0;
@@ -32,10 +32,10 @@ public final class MoveContraint {
 		populate(Colour.BLACK, true,  true );
 	}
 	
-	public final static MoveContraint defaultWhite = new MoveContraint(Colour.WHITE, true, true, null);
-	public final static MoveContraint defaultBlack = new MoveContraint(Colour.BLACK, true, true, null);
+	public final static MoveConstraint defaultWhite = new MoveConstraint(Colour.WHITE, true, true, null);
+	public final static MoveConstraint defaultBlack = new MoveConstraint(Colour.BLACK, true, true, null);
 	
-	public final static MoveContraint defaultForColour(Colour colour) {
+	public final static MoveConstraint defaultForColour(Colour colour) {
 		if (colour == null) throw new IllegalArgumentException("null colour");
 		return colour.white ? defaultWhite : defaultBlack;
 	}
@@ -44,7 +44,7 @@ public final class MoveContraint {
 	public final Squares castlingSquares;
 	public final Square enPassantSqr;
 	
-	public MoveContraint(Colour toMove, boolean mayCastleC, boolean mayCastleG, File enPassantFile) {
+	public MoveConstraint(Colour toMove, boolean mayCastleC, boolean mayCastleG, File enPassantFile) {
 		if (toMove == null) throw new IllegalArgumentException("null toMove");
 		this.toMove = toMove;
 		this.enPassantSqr = enPassantFile == null ? null : enPassantFile.intersect(toMove.white ? Rank.RK_6 : Rank.RK_3);

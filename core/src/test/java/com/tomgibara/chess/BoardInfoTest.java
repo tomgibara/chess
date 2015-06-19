@@ -45,9 +45,9 @@ public class BoardInfoTest extends TestCase {
 		Board board = Notation.parseFENBoard("7r/1k2pn1R/8/1r1p4/8/3K1B1q/8/1R6");
 		assertInterMovesAre("h3-d3", board.getInfo().withColour(WHITE).pinsToKing().values());
 		assertInterMovesAre("f3-b7,b1-b7", board.getInfo().withColour(BLACK).pinsToKing().values());
-		assertMovesAre("b5-b6,b5-b4,b5-b3,b5-b2,b5-b1", at("b5").on(board).availableMoves(MoveContraint.defaultBlack));
-		assertMovesAre("", at("f3").on(board).availableMoves(MoveContraint.defaultWhite));
-		assertMovesAre("h3-g3,h3-f3,h3-h2,h3-h1,h3-g2,h3-f1,h3-g4,h3-f5,h3-e6,h3-d7,h3-c8,h3-h4,h3-h5,h3-h6,h3-h7", at("h3").on(board).availableMoves(MoveContraint.defaultBlack));
+		assertMovesAre("b5-b6,b5-b4,b5-b3,b5-b2,b5-b1", at("b5").on(board).availableMoves(MoveConstraint.defaultBlack));
+		assertMovesAre("", at("f3").on(board).availableMoves(MoveConstraint.defaultWhite));
+		assertMovesAre("h3-g3,h3-f3,h3-h2,h3-h1,h3-g2,h3-f1,h3-g4,h3-f5,h3-e6,h3-d7,h3-c8,h3-h4,h3-h5,h3-h6,h3-h7", at("h3").on(board).availableMoves(MoveConstraint.defaultBlack));
 	}
 	
 	public void testChecks() {
@@ -59,37 +59,37 @@ public class BoardInfoTest extends TestCase {
 	public void testKingMoves() {
 		Board board = Notation.parseFENBoard("2K5/1B4N1/4k3/4P2Q/8/8/8/8");
 		//TODO need a better way to get moves for square
-		List<Move> kingMoves = board.getInfo().squaresOccupiedBy(Piece.KING.black()).asArea().on(board).availableMoves(MoveContraint.defaultBlack);
+		List<Move> kingMoves = board.getInfo().squaresOccupiedBy(Piece.KING.black()).asArea().on(board).availableMoves(MoveConstraint.defaultBlack);
 		assertMovesAre("e6-e7", kingMoves);
 	}
 	
 	public void testStopCheck() {
 		Board board = Notation.parseFENBoard("8/3k2Q1/8/4qn2/8/3K4/8/8");
-		List<Move> moves = board.pieces.keySet().asArea().on(board).availableMoves(MoveContraint.defaultBlack);
+		List<Move> moves = board.pieces.keySet().asArea().on(board).availableMoves(MoveConstraint.defaultBlack);
 		assertMovesAre("e5-e7,e5-g7,f5-e7,f5-g7,d7-c6,d7-d6,d7-e6,d7-c8,d7-d8,d7-e8", moves);
 	}
 	
 	public void testEnPassant() {
 		Board board = Notation.parseFENBoard("4k3/8/8/8/pP6/8/8/4K3");
 		BoardArea area = board.pieces.keySet().asArea().on(board);
-		List<Move> moves1 = area.availableMoves(new MoveContraint(Colour.BLACK, false, false, File.FL_B));
+		List<Move> moves1 = area.availableMoves(new MoveConstraint(Colour.BLACK, false, false, File.FL_B));
 		assertTrue(moves1.contains(move("a4-b3")));
-		List<Move> moves2 = area.availableMoves(new MoveContraint(Colour.BLACK, false, false, null));
+		List<Move> moves2 = area.availableMoves(new MoveConstraint(Colour.BLACK, false, false, null));
 		assertFalse(moves2.contains(move("a4-b3")));
 	}
 	
 	public void testCastling() {
 		Board board = Notation.parseFENBoard("4k3/8/8/q7/8/r3b3/3PP3/R3Kb1r");
 		BoardArea area = board.getInfo().squaresOccupiedBy(Piece.KING.white()).asArea().on(board);
-		List<Move> moves1 = area.availableMoves(new MoveContraint(Colour.WHITE, true, false, null));
+		List<Move> moves1 = area.availableMoves(new MoveConstraint(Colour.WHITE, true, false, null));
 		assertTrue(moves1.contains(move("e1-c1")));
-		List<Move> moves2 = area.availableMoves(new MoveContraint(Colour.WHITE, false, false, null));
+		List<Move> moves2 = area.availableMoves(new MoveConstraint(Colour.WHITE, false, false, null));
 		assertFalse(moves2.contains(move("e1-c1")));
 		
 		//board = Notation.parseFENBoard("8/8/8/2b5/1rq5/2k5/8/R3K2R");
 		board = Notation.parseFENBoard("8/8/8/2b5/1rq5/2k5/5P2/R3K2R");
 		area = board.getInfo().squaresOccupiedBy(Piece.KING.white()).asArea().on(board);
-		List<Move> moves = area.availableMoves(new MoveContraint(Colour.WHITE, true, true, null));
+		List<Move> moves = area.availableMoves(new MoveConstraint(Colour.WHITE, true, true, null));
 		assertTrue(moves.contains(move("e1-c1")));
 		assertFalse(moves.contains(move("e1-g1")));
 	}

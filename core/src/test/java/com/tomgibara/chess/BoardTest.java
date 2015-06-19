@@ -55,7 +55,7 @@ public class BoardTest extends TestCase {
 	
 	public void testMoves() {
 		Board board = Board.initial();
-		List<Move> moves = Rectangle.entire().on(board).availableMoves(MoveContraint.defaultWhite);
+		List<Move> moves = Rectangle.entire().on(board).availableMoves(MoveConstraint.defaultWhite);
 		assertEquals(20, moves.size());
 	}
 
