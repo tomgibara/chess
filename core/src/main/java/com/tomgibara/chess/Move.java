@@ -14,12 +14,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-public final class Move {
+public final class Move implements Comparable<Move> {
 
 	private static final int WHITE_PAWN     = 0b000000001;
 	private static final int BLACK_PAWN     = 0b000000010;
@@ -222,7 +224,8 @@ public final class Move {
 	}
 	
 	public boolean isPossibleFor(Piece piece) {
-		if (piece == null) throw new IllegalArgumentException("null piece");
+//TODO analyze surprising impact on performance
+//		if (piece == null) throw new IllegalArgumentException("null piece");
 		switch (piece) {
 		case BISHOP: return anySet(BISHOP);
 		case KING: return anySet(EITHER_KING);
@@ -230,12 +233,13 @@ public final class Move {
 		case PAWN: return anySet(EITHER_PAWN);
 		case QUEEN: return anySet(QUEEN);
 		case ROOK: return anySet(ROOK);
-		default: throw new IllegalStateException();
+		default: return false;
 		}
 	}
 	
 	public boolean isPossibleFor(ColouredPiece piece) {
-		if (piece == null) throw new IllegalArgumentException("null piece");
+//TODO analyze surprising impact on performance
+//		if (piece == null) throw new IllegalArgumentException("null piece");
 		switch (piece) {
 		case BLACK_PAWN : return anySet(BLACK_PAWN);
 		case WHITE_PAWN : return anySet(WHITE_PAWN);
@@ -279,6 +283,11 @@ public final class Move {
 	}
 	
 	@Override
+	public int compareTo(Move that) {
+		return this.ordinal - that.ordinal;
+	}
+	
+	@Override
 	public int hashCode() {
 		return ordinal;
 	}
@@ -300,25 +309,36 @@ public final class Move {
 		private final long bits;
 		private final int size;
 		private final SquareMap<Move> map;
+		private final long[] masks;
+		
 		
 		MoveList(int ordinal, boolean reverse) {
 			this.ordinal = ordinal;
 			this.reverse = reverse;
 			square = Square.at(ordinal);
-			
+
 			long bits = 0L;
 			long bit = 1L;
 			int size = 0;
+			long[] masks = new long[ColouredPiece.COUNT];
+			ColouredPiece[] pieces = ColouredPiece.values();
 			for (int offset = 0; offset < 64; offset++) {
 				int p = ptr(offset);
-				if (moves[p].isPossible()) {
+				Move move = moves[p];
+				if (move.isPossible()) {
 					bits |= bit;
 					size ++;
+				}
+				for (int i = 0; i < pieces.length; i++) {
+					if (move.isPossibleFor(pieces[i])) {
+						masks[i] |= bit;
+					}
 				}
 				bit <<= 1;
 			}
 			this.bits = bits;
 			this.size = size;
+			this.masks = masks;
 			
 			map = new SquareMap<Move>(new SquareMap.Store<Move>() {
 
@@ -326,11 +346,16 @@ public final class Move {
 				public Class<? extends Move> valueType() { return Move.class; }
 
 				@Override
-				public Move get(int index) { return moves[ptr(index)]; }
+				public int size() { return MoveList.this.size; }
 
 				@Override
-				public int size() { return MoveList.this.size; }
+				public Move get(int index) {
+					Move move = moves[ptr(index)];
+					return move.isPossible() ? move : null;
+				}
+
 			});
+
 		}
 		
 		public SquareMap<Move> asMap() {
@@ -383,7 +408,18 @@ public final class Move {
 		public int size() {
 			return size;
 		}
-
+		
+		@Override
+		public void forEach(Consumer<? super Move> action) {
+			//TODO use smarter iteration?	
+			for (int offset = 0; offset < 64; offset++) {
+				Move move = moves[ptr(offset)];
+				if (move.isPossible()) {
+					action.accept(move);
+				}
+			}
+		}
+		
 		//TODO would like to eliminate branch - subclass instead?
 		private int ptr(int off) {
 			return reverse ? (off << 6) + ordinal : (ordinal << 6) + off;
@@ -399,25 +435,28 @@ public final class Move {
 			SquareMap<ColouredPiece> pieces = board.pieces;
 			ColouredPiece piece = pieces.get(square);
 			Squares occupied = pieces.keySet();
+			Colour colour = constraint.toMove;
+			Squares occupiedBySameColour = board.getInfo().withColour(colour).occupiedSquares();
 
 			if (checkers.isEmpty() || piece.piece == Piece.KING) {
-				//TODO optimize
-				for (Move move : this) { // regular case
+				// ugly but localized and faster than regular iteration
+				long bits = masks[piece.ordinal()] & ~occupiedBySameColour.mask();
+				for (int offset = 0; offset < 64 && bits != 0L; offset++, bits >>>= 1) {
+					if ((bits & 1L) == 0L) continue; // invalid move
+					Move move = Move.moves[ptr(offset)];
 					if (!move.isPossibleFor(piece)) continue; // piece cannot move in that way
-					ColouredPiece target = pieces.get(move.to);
-					if (target != null && target.colour == piece.colour) continue; // piece cannot capture same colour
-					if (piece.piece == Piece.PAWN && move.isPawnCapture() == (target == null && move.to != constraint.enPassantSqr)) continue; // pawns must capture to move diagonally
+					if (piece.piece == Piece.PAWN && move.isPawnCapture() == (move.to != constraint.enPassantSqr && !occupied.contains(move.to))) continue; // pawns must capture to move diagonally
 					if (occupied.intersects(move.intermediateSquares)) continue; // one or more pieces interposed
 					if (piece.piece == Piece.KING) {
 						Colour attackColour = piece.colour.opposite();
-						if (isAttackedAfter(pieces, occupied, move, attackColour)) continue; // king cannot move into check
+						if (possibleMovesTo(move.to).attacks(pieces, occupied, move.from, attackColour)) continue; // king cannot move into check
 						if (move.isCastling()) {
 							if (!constraint.castlingSquares.contains(move.to)) continue; // cannot castle invalidly
 							if (!checkers.isEmpty()) continue; // cannot castle out of check
 							Move rookMove = move.inducedRookMove();
 							if (pieces.get(rookMove.from) != Piece.ROOK.coloured(constraint.toMove)) continue; // rook must be present
 							if (occupied.intersects( rookMove.intermediateSquares )) continue; // path must be clear for rook
-							if (isAttackedAfter(pieces, occupied, rookMove.from.to(move.intermediateSquares.only()), attackColour)) continue; // cannot pass through check
+							if (possibleMovesTo(move.intermediateSquares.only()).attacks(pieces, occupied, rookMove.from, attackColour)) continue; // cannot pass through check
 						}
 					} else {
 						Interposition pin = board.getInfo().withColour(piece.colour).pinnedToKing().get(square);
@@ -444,14 +483,17 @@ public final class Move {
 			}
 		}
 
-		private boolean isAttackedAfter(SquareMap<ColouredPiece> pieces, Squares occupied, Move m, Colour attackColour) {
-			for (Move move : Move.possibleMovesTo(m.to)) {
+		private boolean attacks(SquareMap<ColouredPiece> pieces, Squares occupied, Square vacated, Colour attackColour) {
+			//TODO can we make a fast way of iteration?
+			for (int offset = 0; offset < 64; offset++) {
+				Move move = moves[ptr(offset)];
+				if (!move.isPossible()) continue;
 				ColouredPiece piece = pieces.get(move.from);
 				if (
 						piece != null &&
 						piece.colour == attackColour &&
 						move.isPossibleFor(piece) &&
-						occupied.disjoint(move.intermediateSquares, m.from)
+						occupied.disjoint(move.intermediateSquares, vacated)
 				) return true;
 			}
 			return false;

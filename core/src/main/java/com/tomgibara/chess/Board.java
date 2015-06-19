@@ -12,7 +12,9 @@ import static com.tomgibara.chess.ColouredPiece.WHITE_QUEEN;
 import static com.tomgibara.chess.ColouredPiece.WHITE_ROOK;
 
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 
+//TODO what role does this play now - move Board info functionality here?
 public final class Board {
 
 	private static final Board empty = new Board();
@@ -56,7 +58,12 @@ public final class Board {
 	private Board() {
 		pieces = new Arrangement().consume();
 	}
-	
+
+	//TODO quick test only
+	Board(SquareMap<ColouredPiece> pieces) {
+		this.pieces = pieces;
+	}
+
 	Board(Arrangement arrangement) {
 		pieces = arrangement.consume();
 	}
@@ -92,43 +99,20 @@ public final class Board {
 		String nl = String.format("%n");
 		StringBuilder sb = new StringBuilder(144);
 		for (int rank = 7; rank >= 0; rank--) {
+			sb.append(Rank.valueOf(rank)).append(' ');
 			for (int file = 0; file < 8; file++) {
 				ColouredPiece piece = pieces.get(Square.at(file, rank));
 				sb.append(piece == null ? "  " : piece.toString());
 			}
 			sb.append(nl);
 		}
+		sb.append(' ');
+		for (File file: File.values()) {
+			sb.append(' ').append(file.character);
+		}
+		sb.append(' ');
+		sb.append(nl);
 		return sb.toString();
-	}
-
-	int[] countPieces() {
-		int[] counts = new int[12];
-		for (ColouredPiece piece : pieces.values()) {
-			if (piece == null) continue;
-			counts[piece.ordinal()] ++;
-		}
-		return counts;
-	}
-	
-	//TODO add efficient methods to SquareMap for this
-	Squares[] pieceSquares(int[] pieceCounts) {
-		Squares[] pieceSquares = new Squares[ColouredPiece.COUNT];
-		for (int i = 0; i < ColouredPiece.COUNT; i++) {
-			pieceSquares[i] = new MutableSquares();
-		}
-		
-		pieces.keySet().forEach(
-				s -> pieceSquares[ pieces.get(s).ordinal() ].add(s)
-		);
-		return pieceSquares;
-	}
-
-	MutableSquares squaresOccupiedBy(Colour colour) {
-		MutableSquares squares = new MutableSquares();
-		pieces.keySet().forEach( s -> {
-			if (pieces.get(s).colour == colour) squares.add(s);
-		});
-		return squares;
 	}
 
 }

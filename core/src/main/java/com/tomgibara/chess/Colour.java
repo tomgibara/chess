@@ -11,6 +11,14 @@ public enum Colour {
 		default: throw new IllegalArgumentException("invalid ordinal: " + ordinal);
 		}
 	}
+
+	public static Colour valueOf(char c) {
+		switch (c) {
+		case 'w' : return WHITE;
+		case 'b' : return BLACK;
+		default: throw new IllegalArgumentException("invalid character: " + c);
+		}
+	}
 	
 	public final boolean white;
 	public final boolean black;

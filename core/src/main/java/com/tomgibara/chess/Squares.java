@@ -163,12 +163,11 @@ public class Squares extends AbstractSet<Square> {
 	@Override
 	public void forEach(Consumer<? super Square> action) {
 		Objects.requireNonNull(action, "null action");
-		long bits = Long.reverse(squares);
-		for (int ordinal = 0; ordinal < 64; ordinal++) {
-			long shift = bits << ordinal;
-			if (shift > 0) continue;
-			if (shift == 0) break;
-			action.accept(Square.at(ordinal));
+		long bits = squares;
+		for (int ordinal = 0; ordinal < 64 && bits != 0; ordinal++, bits >>>= 1) {
+			if ((bits & 1L) == 1L) {
+				action.accept(Square.at(ordinal));
+			}
 		}
 	}
 	
@@ -186,6 +185,10 @@ public class Squares extends AbstractSet<Square> {
 		return isSingleBit(squares) ? Square.at(Long.numberOfTrailingZeros(squares)) : null;
 	}
 
+	long mask() {
+		return squares;
+	}
+	
 	//TODO support publicly as containsAny?
 	boolean intersects(Squares that) {
 		return (this.squares & that.squares) != 0;

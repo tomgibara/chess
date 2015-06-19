@@ -5,8 +5,14 @@ import static com.tomgibara.chess.Colour.WHITE;
 import static com.tomgibara.chess.Move.move;
 import static com.tomgibara.chess.Square.at;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import junit.framework.TestCase;
 
@@ -37,37 +43,30 @@ public class BoardInfoTest extends TestCase {
 	
 	public void testPins() {
 		Board board = Notation.parseFENBoard("7r/1k2pn1R/8/1r1p4/8/3K1B1q/8/1R6");
-		Map<Square, Interposition> whitePins = board.getInfo().withColour(WHITE).pinsToKing();
-		System.out.println(whitePins);
-		Map<Square, Interposition> blackPins = board.getInfo().withColour(BLACK).pinsToKing();
-		System.out.println(blackPins);
-		List<Move> b5Moves = at("b5").on(board).availableMoves(MoveContraint.defaultBlack);
-		System.out.println("B5: " + b5Moves);
-		List<Move> f3Moves = at("f3").on(board).availableMoves(MoveContraint.defaultWhite);
-		System.out.println("F3: " + f3Moves);
-		List<Move> h3Moves = at("h3").on(board).availableMoves(MoveContraint.defaultBlack);
-		System.out.println("H3: " + h3Moves);
+		assertInterMovesAre("h3-d3", board.getInfo().withColour(WHITE).pinsToKing().values());
+		assertInterMovesAre("f3-b7,b1-b7", board.getInfo().withColour(BLACK).pinsToKing().values());
+		assertMovesAre("b5-b6,b5-b4,b5-b3,b5-b2,b5-b1", at("b5").on(board).availableMoves(MoveContraint.defaultBlack));
+		assertMovesAre("", at("f3").on(board).availableMoves(MoveContraint.defaultWhite));
+		assertMovesAre("h3-g3,h3-f3,h3-h2,h3-h1,h3-g2,h3-f1,h3-g4,h3-f5,h3-e6,h3-d7,h3-c8,h3-h4,h3-h5,h3-h6,h3-h7", at("h3").on(board).availableMoves(MoveContraint.defaultBlack));
 	}
 	
 	public void testChecks() {
 		Board board = Notation.parseFENBoard("8/3kn2Q/4P3/3K4/B7/8/3r4/3r4");
-		SquareMap<Move> whiteChecks = board.getInfo().white().checks();
-		System.out.println(whiteChecks);
-		SquareMap<Move> blackChecks = board.getInfo().black().checks();
-		System.out.println(blackChecks);
+		assertMovesAre("d2-d5,e7-d5", board.getInfo().white().checks().values());
+		assertMovesAre("e6-d7,a4-d7", board.getInfo().black().checks().values());
 	}
 	
 	public void testKingMoves() {
 		Board board = Notation.parseFENBoard("2K5/1B4N1/4k3/4P2Q/8/8/8/8");
 		//TODO need a better way to get moves for square
 		List<Move> kingMoves = board.getInfo().squaresOccupiedBy(Piece.KING.black()).asArea().on(board).availableMoves(MoveContraint.defaultBlack);
-		System.out.println("KING " + kingMoves);
+		assertMovesAre("e6-e7", kingMoves);
 	}
 	
 	public void testStopCheck() {
 		Board board = Notation.parseFENBoard("8/3k2Q1/8/4qn2/8/3K4/8/8");
 		List<Move> moves = board.pieces.keySet().asArea().on(board).availableMoves(MoveContraint.defaultBlack);
-		System.out.println("CHECK SAVERS " + moves);
+		assertMovesAre("e5-e7,e5-g7,f5-e7,f5-g7,d7-c6,d7-d6,d7-e6,d7-c8,d7-d8,d7-e8", moves);
 	}
 	
 	public void testEnPassant() {
@@ -94,4 +93,32 @@ public class BoardInfoTest extends TestCase {
 		assertTrue(moves.contains(move("e1-c1")));
 		assertFalse(moves.contains(move("e1-g1")));
 	}
+
+	private void assertSquaresAre(String expected, Collection<Square> squares) {
+		if (expected.isEmpty()) {
+			assertTrue(squares.isEmpty());
+		} else {
+			Set<Square> set = Arrays.stream(expected.split(",")).map(Square::at).collect(Collectors.toCollection(TreeSet::new));
+			assertEquals(set, new TreeSet<>(squares));
+		}
+	}
+
+	private void assertMovesAre(String expected, Collection<Move> moves) {
+		if (expected.isEmpty()) {
+			assertTrue(moves.isEmpty());
+		} else {
+			Set<Move> set = Arrays.stream(expected.split(",")).map(Move::move).collect(Collectors.toCollection(TreeSet::new));
+			assertEquals(set, new TreeSet<>(moves));
+		}
+	}
+
+	private void assertInterMovesAre(String expected, Collection<Interposition> inters) {
+		if (expected.isEmpty()) {
+			assertTrue(inters.isEmpty());
+		} else {
+			Set<Move> set = Arrays.stream(expected.split(",")).map(Move::move).collect(Collectors.toCollection(TreeSet::new));
+			assertEquals(set, inters.stream().map(i -> i.move).collect(Collectors.toCollection(TreeSet::new)));
+		}
+	}
+
 }

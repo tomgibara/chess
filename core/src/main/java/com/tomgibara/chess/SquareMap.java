@@ -194,6 +194,33 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		squares = squares(store);
 	}
 
+	public int[] partitionSizes() {
+		int[] counts = new int[enumSize()];
+		for (int i = 0; i < 64; i++) {
+			V v = store.get(i);
+			if (v == null) continue;
+			counts[((Enum) v).ordinal()]++;
+		}
+		return counts;
+	}
+	
+	public Squares[] partition() {
+		int length = enumSize();
+		Squares[] partition = new Squares[length];
+		for (int i = 0; i < length; i++) {
+			partition[i] = new MutableSquares();
+		}
+		for (int i = 0; i < 64; i++) {
+			V v = store.get(i);
+			if (v == null) continue;
+			partition[ ((Enum<?>)store.get(i)).ordinal() ].add(Square.at(i));
+		}
+		for (int i = 0; i < length; i++) {
+			partition[i] = Squares.immutable( partition[i] );
+		}
+		return partition;
+	}
+	
 	public SquareMap<V> immutable() {
 		return store.isMutable() ? new SquareMap<>(store.immutable()) : this;
 	}
@@ -251,9 +278,11 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	
 	@Override
 	public void forEach(BiConsumer<? super Square, ? super V> action) {
-		for (int i = 0; i < 64; i++) {
-			V v = get(i);
-			if (v != null) action.accept(Square.at(i), v);
+		long bits = squares.mask();
+		for (int ordinal = 0; ordinal < 64 && bits != 0; ordinal++, bits >>>= 1) {
+			if ((bits & 1L) == 1L) {
+				action.accept(Square.at(ordinal), get(ordinal));
+			}
 		}
 	}
 	
@@ -281,6 +310,8 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	public Set<Map.Entry<Square, V>> entrySet() {
 		return entrySet == null ? entrySet = new EntrySet() : entrySet;
 	}
+	
+	//TODO implement efficient values()?
 
 	@Override
 	public boolean equals(Object o) {
@@ -289,7 +320,7 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		if (o instanceof SquareMap<?>) {
 			SquareMap<?> that = (SquareMap<?>) o;
 			if (this.store.valueType() != that.store.valueType()) return false;
-			if (!this.squares.equals(that.squares)) return false;
+			if (this.squares.mask() != that.squares.mask()) return false;
 			for (int i = 0; i < 64; i++) {
 				if (!Objects.equals(this.store.get(i), that.store.get(i))) {
 					return false;
@@ -298,6 +329,24 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 			return true;
 		}
 		return super.equals(o);
+	}
+
+	//TODO yuck
+	// want a specific piece map extension - replaces Arrangement?
+	public Squares[] colourPartition() {
+		if (store.valueType() != ColouredPiece.class) throw new IllegalStateException();
+		Squares[] partition = new Squares[2];
+		partition[0] = new MutableSquares();
+		partition[1] = new MutableSquares();
+		for (int i = 0; i < 64; i++) {
+			V v = store.get(i);
+			if (v == null) continue;
+			ColouredPiece piece = (ColouredPiece) store.get(i);
+			partition[ piece.colour.ordinal() ].add(Square.at(i));
+		}
+		partition[0] = Squares.immutable( partition[0] );
+		partition[1] = Squares.immutable( partition[1] );
+		return partition;
 	}
 	
 	private V get(int ordinal) {
@@ -308,6 +357,13 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		return store.set(ordinal, value);
 	}
 	
+	private int enumSize() {
+		Class<?> type = store.valueType();
+		if (type == ColouredPiece.class) return ColouredPiece.COUNT;
+		if (!type.isEnum()) throw new IllegalStateException();
+		return type.getEnumConstants().length;
+	}
+
 	private class EntrySet extends AbstractSet<Map.Entry<Square, V>> {
 
 		@Override

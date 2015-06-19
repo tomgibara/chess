@@ -16,6 +16,7 @@ public class BoardInfo {
 	private BoardArea entireBoardArea = null;
 	private ColouredBoardInfo whiteInfo;
 	private ColouredBoardInfo blackInfo;
+	private Squares[] colourOccupiedSquares = null;
 	
 	BoardInfo(Board board) {
 		this.board = board;
@@ -84,7 +85,12 @@ public class BoardInfo {
 		if (piece == null) throw new IllegalArgumentException("null piece");
 		return getPieceSquares()[piece.ordinal()];
 	}
+
+	private Squares[] colourOccupiedSquares() {
+		return colourOccupiedSquares == null ? colourOccupiedSquares = board.pieces.colourPartition() : colourOccupiedSquares;
+	}
 	
+
 	// check
 	
 //	//TODO needs memoization
@@ -132,18 +138,12 @@ public class BoardInfo {
 	// private utility methods
 	
 	private int[] getColPieceCounts() {
-		return colPieceCounts == null ? colPieceCounts = board.countPieces() : colPieceCounts;
+		return colPieceCounts == null ? colPieceCounts = board.pieces.partitionSizes() : colPieceCounts;
 	}
 	
+	//TODO consider switching to Squares array as board representation
 	private Squares[] getPieceSquares() {
-		if (pieceSquares == null) {
-			Squares[] squares = board.pieceSquares(getColPieceCounts());
-			for (int i = 0; i < ColouredPiece.COUNT; i++) {
-				squares[i] = Squares.immutable(squares[i]);
-			}
-			pieceSquares = squares;
-		}
-		return pieceSquares;
+		return pieceSquares == null ? pieceSquares = board.pieces.partition() : pieceSquares;
 	}
 
 	// inner classes
@@ -153,7 +153,6 @@ public class BoardInfo {
 		public final Colour colour;
 
 		private int pieceCount = -1;
-		private Squares occupiedSquares = null;
 		private Square kingsSquare = null;
 		private SquareMap<Interposition> pinsToKing = null;
 		private SquareMap<Interposition> pinnedToKing = null;
@@ -163,12 +162,11 @@ public class BoardInfo {
 		public ColouredBoardInfo(Colour colour) {
 			this.colour = colour;
 		}
-
-		//TODO could optimize?
-		public Squares occupiedSquares() {
-			return occupiedSquares == null ? occupiedSquares = board.squaresOccupiedBy(colour) : occupiedSquares;
-		}
 		
+		public Squares occupiedSquares() {
+			return colourOccupiedSquares()[colour.ordinal()];
+		}
+
 		public int countPieces() {
 			return pieceCount == -1 ? pieceCount = occupiedSquares().size() : pieceCount;
 		}

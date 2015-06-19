@@ -35,6 +35,11 @@ public final class MoveContraint {
 	public final static MoveContraint defaultWhite = new MoveContraint(Colour.WHITE, true, true, null);
 	public final static MoveContraint defaultBlack = new MoveContraint(Colour.BLACK, true, true, null);
 	
+	public final static MoveContraint defaultForColour(Colour colour) {
+		if (colour == null) throw new IllegalArgumentException("null colour");
+		return colour.white ? defaultWhite : defaultBlack;
+	}
+	
 	public final Colour toMove;
 	public final Squares castlingSquares;
 	public final Square enPassantSqr;

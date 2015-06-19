@@ -24,16 +24,12 @@ public class MoveTest extends TestCase {
 		{
 			List<Move> moves = Move.possibleMovesFrom(sqr);
 			assertFalse(moves.isEmpty());
-			for (Move move : moves) {
-				assertTrue(Move.possibleMovesTo(sqr).contains(move.reverse()));
-			}
+			moves.forEach( m-> assertTrue(Move.possibleMovesTo(sqr).contains(m.reverse())) );
 		}
 		{
 			List<Move> moves = Move.possibleMovesTo(sqr);
 			assertFalse(moves.isEmpty());
-			for (Move move : moves) {
-				assertTrue(Move.possibleMovesFrom(sqr).contains(move.reverse()));
-			}
+			moves.forEach( m-> assertTrue(Move.possibleMovesFrom(sqr).contains(m.reverse())) );
 		}
 	}
 	

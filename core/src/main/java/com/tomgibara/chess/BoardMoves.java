@@ -38,9 +38,9 @@ public class BoardMoves extends AbstractList<Move> {
 		} else {
 			Move.possibleMovesFrom(square).populateMoves(this, checkers, interpose);
 		}
+//Move.MoveList.bitCountCalls += squares.size();
 		
 		moves = Arrays.copyOfRange(moves, 0, size);
-		
 	}
 
 	@Override
