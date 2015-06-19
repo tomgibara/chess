@@ -11,8 +11,7 @@ import static com.tomgibara.chess.ColouredPiece.WHITE_KNIGHT;
 import static com.tomgibara.chess.ColouredPiece.WHITE_QUEEN;
 import static com.tomgibara.chess.ColouredPiece.WHITE_ROOK;
 
-import java.util.Arrays;
-import java.util.function.BiConsumer;
+import java.util.Set;
 
 //TODO what role does this play now - move Board info functionality here?
 public final class Board {
@@ -53,7 +52,14 @@ public final class Board {
 	}
 
 	public final SquareMap<ColouredPiece> pieces;
-	private BoardInfo info = null;
+	
+	private int[] colPieceCounts = null;
+	private int pieceCount = -1;
+	private Squares[] pieceSquares = null;
+	private BoardArea entireBoardArea = null;
+	private ColouredBoardInfo whiteInfo;
+	private ColouredBoardInfo blackInfo;
+	private Squares[] colourOccupiedSquares = null;
 	
 	private Board() {
 		pieces = new Arrangement().consume();
@@ -68,10 +74,6 @@ public final class Board {
 		pieces = arrangement.consume();
 	}
 	
-	public BoardInfo getInfo() {
-		return info == null ? info = new BoardInfo(this) : info;
-	}
-	
 	public Arrangement newArrangement() {
 		return new Arrangement(pieces);
 	}
@@ -80,6 +82,69 @@ public final class Board {
 		if (area == null) throw new IllegalArgumentException("null area");
 		return new BoardArea(this, area);
 	}
+	
+	// info methods
+	
+	public ColouredBoardInfo withColour(Colour colour) {
+		if (colour == null) throw new IllegalArgumentException("null colour");
+		return colour.white ? white() : black();
+	}
+	
+	public ColouredBoardInfo white() {
+		return whiteInfo == null ? whiteInfo = new ColouredBoardInfo(Colour.WHITE) : whiteInfo;
+	}
+	
+	public ColouredBoardInfo black() {
+		return blackInfo == null ? blackInfo = new ColouredBoardInfo(Colour.BLACK) : blackInfo;
+	}
+	
+	// counting
+	
+	public int count(ColouredPiece piece) {
+		if (piece == null) throw new IllegalArgumentException("null piece");
+		return getColPieceCounts()[piece.ordinal()];
+	}
+	
+	public int count(Piece piece) {
+		if (piece == null) throw new IllegalArgumentException("null piece");
+		int[] counts = getColPieceCounts();
+		return counts[piece.white().ordinal()] + counts[piece.black().ordinal()];
+	}
+	
+	//makes assumptions
+	public int count(Set<Piece> pieces) {
+		if (pieces == null) throw new IllegalArgumentException("null pieces");
+		if (pieces.isEmpty()) return 0;
+		if (pieces.size() == Piece.COUNT) return countPieces();
+		
+		int[] counts = getColPieceCounts();
+		int count = 0;
+		for (int ord = 0; ord < Piece.COUNT; ord++) {
+			Piece piece = Piece.valueOf(ord);
+			if (pieces.contains(piece)) {
+				count += counts[piece.white().ordinal()] + counts[piece.black().ordinal()];
+			}
+		}
+		return count;
+	}
+
+	public int countPieces() {
+		return pieceCount < 0 ? pieceCount = pieces.keySet().size() : pieceCount;
+	}
+	
+	// squares
+	
+	//TODO remove gets
+	public BoardArea entireBoardArea() {
+		return entireBoardArea == null ? entireBoardArea = Area.entire().on(this) : entireBoardArea;
+	}
+
+	public Squares squaresOccupiedBy(ColouredPiece piece) {
+		if (piece == null) throw new IllegalArgumentException("null piece");
+		return getPieceSquares()[piece.ordinal()];
+	}
+
+	// object methods
 	
 	@Override
 	public boolean equals(Object obj) {
@@ -93,7 +158,8 @@ public final class Board {
 	public int hashCode() {
 		return pieces.hashCode();
 	}
-	
+
+	@Override
 	public String toString() {
 		//TODO move to a shared constant when ready
 		String nl = String.format("%n");
@@ -114,5 +180,149 @@ public final class Board {
 		sb.append(nl);
 		return sb.toString();
 	}
+	
+	// private utility methods
 
+	private Squares[] colourOccupiedSquares() {
+		return colourOccupiedSquares == null ? colourOccupiedSquares = pieces.colourPartition() : colourOccupiedSquares;
+	}
+	
+
+	private int[] getColPieceCounts() {
+		return colPieceCounts == null ? colPieceCounts = pieces.partitionSizes() : colPieceCounts;
+	}
+	
+	//TODO consider switching to Squares array as board representation
+	private Squares[] getPieceSquares() {
+		return pieceSquares == null ? pieceSquares = pieces.partition() : pieceSquares;
+	}
+
+	// inner classes
+	
+	public class ColouredBoardInfo {
+		
+		public final Colour colour;
+
+		private int pieceCount = -1;
+		private Square kingsSquare = null;
+		private SquareMap<Interposition> pinsToKing = null;
+		private SquareMap<Interposition> pinnedToKing = null;
+		private SquareMap<Move> checks = null;
+
+		
+		public ColouredBoardInfo(Colour colour) {
+			this.colour = colour;
+		}
+		
+		public Squares occupiedSquares() {
+			return colourOccupiedSquares()[colour.ordinal()];
+		}
+
+		public int countPieces() {
+			return pieceCount == -1 ? pieceCount = occupiedSquares().size() : pieceCount;
+		}
+		
+		public Square kingsSquare() {
+			if (kingsSquare == null) {
+				//NOTE may exceptionally remain null
+				kingsSquare = getPieceSquares()[Piece.KING.coloured(colour).ordinal()].only();
+			}
+			return kingsSquare;
+		}
+		
+		public SquareMap<Interposition> pinsToKing() {
+			if (pinsToKing == null) computePins();
+			return pinsToKing;
+		}
+		
+		public SquareMap<Interposition> pinnedToKing() {
+			if (pinnedToKing == null) computePins();
+			return pinnedToKing;
+		}
+		
+		public SquareMap<Move> checks() {
+			Square square = kingsSquare();
+			if (square == null) {
+				checks = Move.emptyMap();
+			} else {
+				SquareMap<Move> map = Move.newMoveMap();
+				//TODO want to be able to intersect with occupied squares of opposing colour
+				// would remove first two if clauses
+				Move.possibleMovesTo(square).forEach(m -> {
+					Square s = m.from;
+					ColouredPiece p = pieces.get(s);
+					if (
+							p != null &&
+							p.colour != this.colour &&
+							m.isPossibleFor(p) &&
+							!m.intermediateSquares.intersects(pieces.keySet())
+					) {
+						map.put(s, m);
+					}
+				});
+				checks = map.immutable();
+			}
+			return checks;
+		}
+		
+		private void computePins() {
+			Square square = kingsSquare();
+			if (square == null) {
+				pinsToKing = Interposition.emptySquareMap();
+				pinnedToKing = Interposition.emptySquareMap();
+			} else {
+				PinAnalyzer analyzer = new PinAnalyzer(square);
+				pinsToKing = analyzer.pinsFrom();
+				pinnedToKing = analyzer.pinsThrough();
+			}
+		}
+
+	}
+	
+	private class PinAnalyzer {
+		
+		final Square targetSquare;
+		final ColouredPiece targetPiece;
+		private final SquareMap<Interposition> pinsFrom = Interposition.newSquareMap();
+		private final SquareMap<Interposition> pinsThrough = Interposition.newSquareMap();
+		Squares possibleSquares;
+		Colour attackColour;
+		
+		PinAnalyzer(Square square) {
+			targetSquare = square;
+			targetPiece = pieces.get(square);
+			if (targetPiece != null) {
+				Colour targetColour = targetPiece.colour;
+				attackColour = targetColour.opposite();
+				possibleSquares = withColour(targetColour).occupiedSquares();
+				analyzePins(Piece.BISHOP.coloured(attackColour));
+				analyzePins(Piece.ROOK.coloured(attackColour));
+				analyzePins(Piece.QUEEN.coloured(attackColour));
+			}
+		}
+		
+		SquareMap<Interposition> pinsFrom() {
+			return pinsFrom.immutable();
+		}
+
+		SquareMap<Interposition> pinsThrough() {
+			return pinsThrough.immutable();
+		}
+
+		private void analyzePins(ColouredPiece attackPiece ) {
+			for (Square square : squaresOccupiedBy(attackPiece)) {
+				Move move = Move.between(square, targetSquare);
+				if (move.isPossibleFor(attackPiece)) {
+					Square only = move.intermediateSquares.intersect(pieces.keySet()).only();
+					if (only != null && possibleSquares.contains(only)) {
+						Interposition inter = new Interposition(move, only);
+						pinsFrom.put(move.from, inter);
+						pinsThrough.put(only, inter);
+					}
+				}
+			}
+		}
+
+	}
+	
 }

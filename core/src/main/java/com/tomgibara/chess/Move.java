@@ -436,7 +436,7 @@ public final class Move implements Comparable<Move> {
 			ColouredPiece piece = pieces.get(square);
 			Squares occupied = pieces.keySet();
 			Colour colour = constraint.toMove;
-			Squares occupiedBySameColour = board.getInfo().withColour(colour).occupiedSquares();
+			Squares occupiedBySameColour = board.withColour(colour).occupiedSquares();
 
 			if (checkers.isEmpty() || piece.piece == Piece.KING) {
 				// ugly but localized and faster than regular iteration
@@ -448,18 +448,18 @@ public final class Move implements Comparable<Move> {
 					if (piece.piece == Piece.PAWN && move.isPawnCapture() == (move.to != constraint.enPassantSqr && !occupied.contains(move.to))) continue; // pawns must capture to move diagonally
 					if (occupied.intersects(move.intermediateSquares)) continue; // one or more pieces interposed
 					if (piece.piece == Piece.KING) {
-						Colour attackColour = piece.colour.opposite();
-						if (possibleMovesTo(move.to).attacks(pieces, occupied, move.from, attackColour)) continue; // king cannot move into check
+						Squares occupiedByOpposingColour = board.withColour(colour.opposite()).occupiedSquares();
+						if (possibleMovesTo(move.to).attacks(pieces, occupied, move.from, occupiedByOpposingColour)) continue; // king cannot move into check
 						if (move.isCastling()) {
 							if (!constraint.castlingSquares.contains(move.to)) continue; // cannot castle invalidly
 							if (!checkers.isEmpty()) continue; // cannot castle out of check
 							Move rookMove = move.inducedRookMove();
 							if (pieces.get(rookMove.from) != Piece.ROOK.coloured(constraint.toMove)) continue; // rook must be present
 							if (occupied.intersects( rookMove.intermediateSquares )) continue; // path must be clear for rook
-							if (possibleMovesTo(move.intermediateSquares.only()).attacks(pieces, occupied, rookMove.from, attackColour)) continue; // cannot pass through check
+							if (possibleMovesTo(move.intermediateSquares.only()).attacks(pieces, occupied, rookMove.from, occupiedByOpposingColour)) continue; // cannot pass through check
 						}
 					} else {
-						Interposition pin = board.getInfo().withColour(piece.colour).pinnedToKing().get(square);
+						Interposition pin = board.withColour(piece.colour).pinnedToKing().get(square);
 						if (pin != null && !pin.move.spannedSquares.contains(move.to)) continue; // piece breaks pin on king
 					}
 					moves.add(move);
@@ -483,15 +483,14 @@ public final class Move implements Comparable<Move> {
 			}
 		}
 
-		private boolean attacks(SquareMap<ColouredPiece> pieces, Squares occupied, Square vacated, Colour attackColour) {
-			//TODO can we make a fast way of iteration?
-			for (int offset = 0; offset < 64; offset++) {
+		private boolean attacks(SquareMap<ColouredPiece> pieces, Squares occupied, Square vacated, Squares occupiedByOpposingColour) {
+			long bits = this.bits & occupiedByOpposingColour.mask();
+			for (int offset = 0; offset < 64 && bits != 0L; offset++, bits >>>= 1) {
+				if ((bits & 1L) == 0L) continue; // invalid move
 				Move move = moves[ptr(offset)];
 				if (!move.isPossible()) continue;
 				ColouredPiece piece = pieces.get(move.from);
 				if (
-						piece != null &&
-						piece.colour == attackColour &&
 						move.isPossibleFor(piece) &&
 						occupied.disjoint(move.intermediateSquares, vacated)
 				) return true;

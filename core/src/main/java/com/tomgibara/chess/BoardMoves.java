@@ -28,10 +28,10 @@ public class BoardMoves extends AbstractList<Move> {
 		
 		moves = tmpArray.get();
 
-		SquareMap<Move> checks = board.getInfo().withColour(constraint.toMove).checks();
+		SquareMap<Move> checks = board.withColour(constraint.toMove).checks();
 		Squares checkers = checks.keySet();
 		Squares interpose = checks.size() == 1 ? checks.get(checkers.only()).intermediateSquares : Squares.empty();
-		Squares squares = area.getSquares().intersect(board.getInfo().withColour(constraint.toMove).occupiedSquares());
+		Squares squares = area.getSquares().intersect(board.withColour(constraint.toMove).occupiedSquares());
 		Square square = squares.only();
 		if (square == null) {
 			squares.forEach(s -> Move.possibleMovesFrom(s).populateMoves(this, checkers, interpose));
