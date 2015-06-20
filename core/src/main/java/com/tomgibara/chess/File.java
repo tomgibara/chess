@@ -42,6 +42,7 @@ public enum File {
 	public final char character;
 	private final String string;
 	private Rectangle rectangle;
+	private Area area;
 
 	private File() {
 		character = (char) ('a' + ordinal());
@@ -55,6 +56,13 @@ public enum File {
 		return rectangle;
 	}
 
+	public Area asArea() {
+		if (area == null) {
+			area = asRectangle().asArea();
+		}
+		return area;
+	}
+	
 	public Square intersect(Rank rank) {
 		return Square.at(this, rank);
 	}
@@ -67,11 +75,6 @@ public enum File {
 		return File.valueOf(ordinal);
 	}
 
-	// convenience method
-	public BoardArea on(Board board) {
-		return asRectangle().asArea().on(board);
-	}
-	
 	public int difference(File that) {
 		if (that == null) throw new IllegalArgumentException("null that");
 		return this.ordinal() - that.ordinal();

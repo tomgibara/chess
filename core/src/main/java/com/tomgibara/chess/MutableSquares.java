@@ -56,4 +56,12 @@ class MutableSquares extends Squares {
 		squares = 0L;
 	}
 	
+	void add(int ordinal) {
+		squares |= 1L << ordinal;
+	}
+	
+	void remove(int ordinal) {
+		squares &= ~(1L << ordinal);
+	}
+
 }

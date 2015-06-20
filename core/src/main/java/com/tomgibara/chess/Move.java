@@ -67,20 +67,20 @@ public final class Move implements Comparable<Move> {
 
 	private static final List<Move> possibleMoves;
 	
-	private static final Map<Piece, List<Move>> pieceMoves;
+	private static final Map<PieceType, List<Move>> typeMoves;
 
 	private static final MoveList[] movesFrom = new MoveList[64];
 	private static final MoveList[] movesTo = new MoveList[64];
 
 	static {
 		possibleMoves = allMoves.stream().filter( m -> m.isPossible() ).collect(moveCollector);
-		EnumMap<Piece, List<Move>> map = new EnumMap<Piece, List<Move>>(Piece.class);
+		EnumMap<PieceType, List<Move>> map = new EnumMap<PieceType, List<Move>>(PieceType.class);
 		map.entrySet().stream().forEach(e -> e.setValue(new ArrayList<Move>()));
-		for (Piece piece : Piece.values()) {
-			List<Move> list = allMoves.stream().filter( m -> m.isPossibleFor(piece) ).collect(moveCollector);
-			map.put(piece, list);
+		for (PieceType type : PieceType.values()) {
+			List<Move> list = allMoves.stream().filter( m -> m.isPossibleFor(type) ).collect(moveCollector);
+			map.put(type, list);
 		}
-		pieceMoves = Collections.unmodifiableMap(map);
+		typeMoves = Collections.unmodifiableMap(map);
 		for (int i = 0; i < movesFrom.length; i++) {
 			movesFrom[i] = new MoveList(i, false);
 			movesTo[i] = new MoveList(i, true);
@@ -96,9 +96,9 @@ public final class Move implements Comparable<Move> {
 	}
 	
 	//TODO use ordered sets?
-	public static List<Move> possibleMovesFor(Piece piece) {
-		if (piece == null) throw new IllegalArgumentException("null piece");
-		return pieceMoves.get(piece);
+	public static List<Move> possibleMovesFor(PieceType type) {
+		if (type == null) throw new IllegalArgumentException("null type");
+		return typeMoves.get(type);
 	}
 	
 	public static MoveList possibleMovesFrom(Square square) {
@@ -130,11 +130,11 @@ public final class Move implements Comparable<Move> {
 		return moves[ ordinal(from, to) ];
 	}
 	
-	private static final SquareMap<Move> emptyMap = newMoveMap().immutable();
+	private static final SquareMap<Move> emptyMap = newSquareMap().immutable();
 	
 	public static SquareMap<Move> emptyMap() { return emptyMap; }
 	
-	public static SquareMap<Move> newMoveMap() {
+	public static SquareMap<Move> newSquareMap() {
 		return new SquareMap<>(new Move[64], 0);
 	}
 	
@@ -223,10 +223,10 @@ public final class Move implements Comparable<Move> {
 		return anySet(PAWN_CAPTURE);
 	}
 	
-	public boolean isPossibleFor(Piece piece) {
+	public boolean isPossibleFor(PieceType type) {
 //TODO analyze surprising impact on performance
 //		if (piece == null) throw new IllegalArgumentException("null piece");
-		switch (piece) {
+		switch (type) {
 		case BISHOP: return anySet(BISHOP);
 		case KING: return anySet(EITHER_KING);
 		case KNIGHT: return anySet(KNIGHT);
@@ -237,7 +237,7 @@ public final class Move implements Comparable<Move> {
 		}
 	}
 	
-	public boolean isPossibleFor(ColouredPiece piece) {
+	public boolean isPossibleFor(Piece piece) {
 //TODO analyze surprising impact on performance
 //		if (piece == null) throw new IllegalArgumentException("null piece");
 		switch (piece) {
@@ -245,18 +245,18 @@ public final class Move implements Comparable<Move> {
 		case WHITE_PAWN : return anySet(WHITE_PAWN);
 		case BLACK_KING : return anySet(BLACK_KING);
 		case WHITE_KING : return anySet(WHITE_KING);
-		default: return isPossibleFor(piece.piece);
+		default: return isPossibleFor(piece.type);
 		}
 	}
 	
-	public Pieces possiblePieces() {
-		return Pieces.containing(
-				isPossibleFor(Piece.PAWN  ),
-				isPossibleFor(Piece.KNIGHT),
-				isPossibleFor(Piece.BISHOP),
-				isPossibleFor(Piece.ROOK  ),
-				isPossibleFor(Piece.QUEEN ),
-				isPossibleFor(Piece.KING  )
+	public PieceTypes possiblePieces() {
+		return PieceTypes.containing(
+				isPossibleFor(PieceType.PAWN  ),
+				isPossibleFor(PieceType.KNIGHT),
+				isPossibleFor(PieceType.BISHOP),
+				isPossibleFor(PieceType.ROOK  ),
+				isPossibleFor(PieceType.QUEEN ),
+				isPossibleFor(PieceType.KING  )
 				);
 	}
 	
@@ -320,8 +320,8 @@ public final class Move implements Comparable<Move> {
 			long bits = 0L;
 			long bit = 1L;
 			int size = 0;
-			long[] masks = new long[ColouredPiece.COUNT];
-			ColouredPiece[] pieces = ColouredPiece.values();
+			long[] masks = new long[Piece.COUNT];
+			Piece[] pieces = Piece.values();
 			for (int offset = 0; offset < 64; offset++) {
 				int p = ptr(offset);
 				Move move = moves[p];
@@ -432,29 +432,29 @@ public final class Move implements Comparable<Move> {
 		void populateMoves(BoardMoves moves, Squares checkers, Squares interpose) {
 			Board board = moves.board;
 			MoveConstraint constraint = moves.constraint;
-			SquareMap<ColouredPiece> pieces = board.pieces;
-			ColouredPiece piece = pieces.get(square);
+			SquareMap<Piece> pieces = board.pieces;
+			Piece piece = pieces.get(square);
 			Squares occupied = pieces.keySet();
 			Colour colour = constraint.toMove;
 			Squares occupiedBySameColour = board.withColour(colour).occupiedSquares();
 
-			if (checkers.isEmpty() || piece.piece == Piece.KING) {
+			if (checkers.isEmpty() || piece.type == PieceType.KING) {
 				// ugly but localized and faster than regular iteration
 				long bits = masks[piece.ordinal()] & ~occupiedBySameColour.mask();
 				for (int offset = 0; offset < 64 && bits != 0L; offset++, bits >>>= 1) {
 					if ((bits & 1L) == 0L) continue; // invalid move
 					Move move = Move.moves[ptr(offset)];
 					if (!move.isPossibleFor(piece)) continue; // piece cannot move in that way
-					if (piece.piece == Piece.PAWN && move.isPawnCapture() == (move.to != constraint.enPassantSqr && !occupied.contains(move.to))) continue; // pawns must capture to move diagonally
+					if (piece.type == PieceType.PAWN && move.isPawnCapture() == (move.to != constraint.enPassantSqr && !occupied.contains(move.to))) continue; // pawns must capture to move diagonally
 					if (occupied.intersects(move.intermediateSquares)) continue; // one or more pieces interposed
-					if (piece.piece == Piece.KING) {
+					if (piece.type == PieceType.KING) {
 						Squares occupiedByOpposingColour = board.withColour(colour.opposite()).occupiedSquares();
 						if (possibleMovesTo(move.to).attacks(pieces, occupied, move.from, occupiedByOpposingColour)) continue; // king cannot move into check
 						if (move.isCastling()) {
 							if (!constraint.castlingSquares.contains(move.to)) continue; // cannot castle invalidly
 							if (!checkers.isEmpty()) continue; // cannot castle out of check
 							Move rookMove = move.inducedRookMove();
-							if (pieces.get(rookMove.from) != Piece.ROOK.coloured(constraint.toMove)) continue; // rook must be present
+							if (pieces.get(rookMove.from) != PieceType.ROOK.coloured(constraint.toMove)) continue; // rook must be present
 							if (occupied.intersects( rookMove.intermediateSquares )) continue; // path must be clear for rook
 							if (possibleMovesTo(move.intermediateSquares.only()).attacks(pieces, occupied, rookMove.from, occupiedByOpposingColour)) continue; // cannot pass through check
 						}
@@ -483,13 +483,13 @@ public final class Move implements Comparable<Move> {
 			}
 		}
 
-		private boolean attacks(SquareMap<ColouredPiece> pieces, Squares occupied, Square vacated, Squares occupiedByOpposingColour) {
+		private boolean attacks(SquareMap<Piece> pieces, Squares occupied, Square vacated, Squares occupiedByOpposingColour) {
 			long bits = this.bits & occupiedByOpposingColour.mask();
 			for (int offset = 0; offset < 64 && bits != 0L; offset++, bits >>>= 1) {
 				if ((bits & 1L) == 0L) continue; // invalid move
 				Move move = moves[ptr(offset)];
 				if (!move.isPossible()) continue;
-				ColouredPiece piece = pieces.get(move.from);
+				Piece piece = pieces.get(move.from);
 				if (
 						move.isPossibleFor(piece) &&
 						occupied.disjoint(move.intermediateSquares, vacated)

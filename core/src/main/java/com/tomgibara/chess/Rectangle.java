@@ -150,11 +150,6 @@ public final class Rectangle {
 		return Area.rectangle(this);
 	}
 	
-	// convenience method
-	public BoardArea on(Board board) {
-		return asArea().on(board);
-	}
-	
 	@Override
 	public int hashCode() {
 		return

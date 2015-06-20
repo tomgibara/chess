@@ -30,9 +30,9 @@ public enum Colour {
 		character = white ? 'w' : 'b';
 	}
 	
-	public ColouredPiece colour(Piece piece) {
-		if (piece == null) throw new IllegalArgumentException("null piece");
-		return ColouredPiece.from(piece, this);
+	public Piece colour(PieceType type) {
+		if (type == null) throw new IllegalArgumentException("null type");
+		return Piece.from(type, this);
 	}
 	
 	public Colour opposite() {

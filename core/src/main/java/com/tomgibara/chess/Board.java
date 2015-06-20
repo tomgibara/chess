@@ -1,25 +1,24 @@
 package com.tomgibara.chess;
 
-import static com.tomgibara.chess.ColouredPiece.BLACK_BISHOP;
-import static com.tomgibara.chess.ColouredPiece.BLACK_KING;
-import static com.tomgibara.chess.ColouredPiece.BLACK_KNIGHT;
-import static com.tomgibara.chess.ColouredPiece.BLACK_QUEEN;
-import static com.tomgibara.chess.ColouredPiece.BLACK_ROOK;
-import static com.tomgibara.chess.ColouredPiece.WHITE_BISHOP;
-import static com.tomgibara.chess.ColouredPiece.WHITE_KING;
-import static com.tomgibara.chess.ColouredPiece.WHITE_KNIGHT;
-import static com.tomgibara.chess.ColouredPiece.WHITE_QUEEN;
-import static com.tomgibara.chess.ColouredPiece.WHITE_ROOK;
+import static com.tomgibara.chess.Piece.BLACK_BISHOP;
+import static com.tomgibara.chess.Piece.BLACK_KING;
+import static com.tomgibara.chess.Piece.BLACK_KNIGHT;
+import static com.tomgibara.chess.Piece.BLACK_QUEEN;
+import static com.tomgibara.chess.Piece.BLACK_ROOK;
+import static com.tomgibara.chess.Piece.WHITE_BISHOP;
+import static com.tomgibara.chess.Piece.WHITE_KING;
+import static com.tomgibara.chess.Piece.WHITE_KNIGHT;
+import static com.tomgibara.chess.Piece.WHITE_QUEEN;
+import static com.tomgibara.chess.Piece.WHITE_ROOK;
 
 import java.util.Set;
 
-//TODO what role does this play now - move Board info functionality here?
 public final class Board {
 
-	private static final Board empty = new Board();
+	private static final Board empty = new Board(new Pieces());
 	private static final Board initial = new Board(
-			new Arrangement()
-			.set(Rank.RK_8.asRectangle().getSquares(),
+			new Pieces()
+			.set(Rank.RK_8.asArea(),
 					BLACK_ROOK,
 					BLACK_KNIGHT,
 					BLACK_BISHOP,
@@ -29,9 +28,9 @@ public final class Board {
 					BLACK_KNIGHT,
 					BLACK_ROOK
 					)
-			.fill(Rank.RK_7.asRectangle().getSquares(), ColouredPiece.BLACK_PAWN)
-			.fill(Rank.RK_2.asRectangle().getSquares(), ColouredPiece.WHITE_PAWN)
-			.set(Rank.RK_1.asRectangle().getSquares(),
+			.fill(Rank.RK_7.asArea(), Piece.BLACK_PAWN)
+			.fill(Rank.RK_2.asArea(), Piece.WHITE_PAWN)
+			.set(Rank.RK_1.asArea(),
 					WHITE_ROOK,
 					WHITE_KNIGHT,
 					WHITE_BISHOP,
@@ -51,36 +50,30 @@ public final class Board {
 		return initial;
 	}
 
-	public final SquareMap<ColouredPiece> pieces;
+	public final Pieces pieces;
 	
 	private int[] colPieceCounts = null;
 	private int pieceCount = -1;
 	private Squares[] pieceSquares = null;
-	private BoardArea entireBoardArea = null;
 	private ColouredBoardInfo whiteInfo;
 	private ColouredBoardInfo blackInfo;
 	private Squares[] colourOccupiedSquares = null;
 	
-	private Board() {
-		pieces = new Arrangement().consume();
+	Board(Pieces pieces) {
+		this.pieces = pieces.immutable();
 	}
 
-	//TODO quick test only
-	Board(SquareMap<ColouredPiece> pieces) {
-		this.pieces = pieces;
-	}
-
-	Board(Arrangement arrangement) {
-		pieces = arrangement.consume();
+	// moves
+	
+	public BoardMoves computeMoves(MoveConstraint constraint) {
+		if (constraint == null) throw new IllegalArgumentException("null constraint");
+		return new BoardMoves(this, Area.entire(), constraint);
 	}
 	
-	public Arrangement newArrangement() {
-		return new Arrangement(pieces);
-	}
-	
-	public BoardArea area(Area area) {
+	public BoardMoves computeMoves(Area area, MoveConstraint constraint) {
 		if (area == null) throw new IllegalArgumentException("null area");
-		return new BoardArea(this, area);
+		if (constraint == null) throw new IllegalArgumentException("null constraint");
+		return new BoardMoves(this, area, constraint);
 	}
 	
 	// info methods
@@ -100,29 +93,29 @@ public final class Board {
 	
 	// counting
 	
-	public int count(ColouredPiece piece) {
+	public int count(Piece piece) {
 		if (piece == null) throw new IllegalArgumentException("null piece");
 		return getColPieceCounts()[piece.ordinal()];
 	}
 	
-	public int count(Piece piece) {
-		if (piece == null) throw new IllegalArgumentException("null piece");
+	public int count(PieceType type) {
+		if (type == null) throw new IllegalArgumentException("null type");
 		int[] counts = getColPieceCounts();
-		return counts[piece.white().ordinal()] + counts[piece.black().ordinal()];
+		return counts[type.white().ordinal()] + counts[type.black().ordinal()];
 	}
 	
 	//makes assumptions
-	public int count(Set<Piece> pieces) {
-		if (pieces == null) throw new IllegalArgumentException("null pieces");
-		if (pieces.isEmpty()) return 0;
-		if (pieces.size() == Piece.COUNT) return countPieces();
+	public int count(Set<PieceType> types) {
+		if (types == null) throw new IllegalArgumentException("null types");
+		if (types.isEmpty()) return 0;
+		if (types.size() == PieceType.COUNT) return countPieces();
 		
 		int[] counts = getColPieceCounts();
 		int count = 0;
-		for (int ord = 0; ord < Piece.COUNT; ord++) {
-			Piece piece = Piece.valueOf(ord);
-			if (pieces.contains(piece)) {
-				count += counts[piece.white().ordinal()] + counts[piece.black().ordinal()];
+		for (int ord = 0; ord < PieceType.COUNT; ord++) {
+			PieceType type = PieceType.valueOf(ord);
+			if (types.contains(type)) {
+				count += counts[type.white().ordinal()] + counts[type.black().ordinal()];
 			}
 		}
 		return count;
@@ -134,12 +127,7 @@ public final class Board {
 	
 	// squares
 	
-	//TODO remove gets
-	public BoardArea entireBoardArea() {
-		return entireBoardArea == null ? entireBoardArea = Area.entire().on(this) : entireBoardArea;
-	}
-
-	public Squares squaresOccupiedBy(ColouredPiece piece) {
+	public Squares squaresOccupiedBy(Piece piece) {
 		if (piece == null) throw new IllegalArgumentException("null piece");
 		return getPieceSquares()[piece.ordinal()];
 	}
@@ -167,7 +155,7 @@ public final class Board {
 		for (int rank = 7; rank >= 0; rank--) {
 			sb.append(Rank.valueOf(rank)).append(' ');
 			for (int file = 0; file < 8; file++) {
-				ColouredPiece piece = pieces.get(Square.at(file, rank));
+				Piece piece = pieces.get(Square.at(file, rank));
 				sb.append(piece == null ? "  " : piece.toString());
 			}
 			sb.append(nl);
@@ -225,7 +213,7 @@ public final class Board {
 		public Square kingsSquare() {
 			if (kingsSquare == null) {
 				//NOTE may exceptionally remain null
-				kingsSquare = getPieceSquares()[Piece.KING.coloured(colour).ordinal()].only();
+				kingsSquare = getPieceSquares()[PieceType.KING.coloured(colour).ordinal()].only();
 			}
 			return kingsSquare;
 		}
@@ -245,12 +233,12 @@ public final class Board {
 			if (square == null) {
 				checks = Move.emptyMap();
 			} else {
-				SquareMap<Move> map = Move.newMoveMap();
+				SquareMap<Move> map = Move.newSquareMap();
 				//TODO want to be able to intersect with occupied squares of opposing colour
 				// would remove first two if clauses
 				Move.possibleMovesTo(square).forEach(m -> {
 					Square s = m.from;
-					ColouredPiece p = pieces.get(s);
+					Piece p = pieces.get(s);
 					if (
 							p != null &&
 							p.colour != this.colour &&
@@ -282,7 +270,7 @@ public final class Board {
 	private class PinAnalyzer {
 		
 		final Square targetSquare;
-		final ColouredPiece targetPiece;
+		final Piece targetPiece;
 		private final SquareMap<Interposition> pinsFrom = Interposition.newSquareMap();
 		private final SquareMap<Interposition> pinsThrough = Interposition.newSquareMap();
 		Squares possibleSquares;
@@ -295,9 +283,9 @@ public final class Board {
 				Colour targetColour = targetPiece.colour;
 				attackColour = targetColour.opposite();
 				possibleSquares = withColour(targetColour).occupiedSquares();
-				analyzePins(Piece.BISHOP.coloured(attackColour));
-				analyzePins(Piece.ROOK.coloured(attackColour));
-				analyzePins(Piece.QUEEN.coloured(attackColour));
+				analyzePins(PieceType.BISHOP.coloured(attackColour));
+				analyzePins(PieceType.ROOK.coloured(attackColour));
+				analyzePins(PieceType.QUEEN.coloured(attackColour));
 			}
 		}
 		
@@ -309,7 +297,7 @@ public final class Board {
 			return pinsThrough.immutable();
 		}
 
-		private void analyzePins(ColouredPiece attackPiece ) {
+		private void analyzePins(Piece attackPiece ) {
 			for (Square square : squaresOccupiedBy(attackPiece)) {
 				Move move = Move.between(square, targetSquare);
 				if (move.isPossibleFor(attackPiece)) {

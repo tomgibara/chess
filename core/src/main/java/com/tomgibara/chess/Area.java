@@ -60,11 +60,6 @@ public class Area {
 		return squares == null && bounds.isEntire();
 	}
 	
-	public BoardArea on(Board board) {
-		if (board == null) throw new IllegalArgumentException("null board");
-		return new BoardArea(board, this);
-	}
-	
 	public Area intersect(Area that) {
 		//TODO can we strength to == empty?
 		if (this.isEmpty() || that.isEmpty()) return empty;

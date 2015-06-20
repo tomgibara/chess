@@ -42,6 +42,7 @@ public enum Rank {
 	public final char character;
 	private final String string;
 	private Rectangle rectangle;
+	private Area area;
 	
 	private Rank() {
 		character = (char) ('1' + ordinal());
@@ -53,6 +54,13 @@ public enum Rank {
 			rectangle = Rectangle.rank(this);
 		}
 		return rectangle;
+	}
+	
+	public Area asArea() {
+		if (area == null) {
+			area = asRectangle().asArea();
+		}
+		return area;
 	}
 	
 	public Square intersect(File file) {
@@ -67,11 +75,6 @@ public enum Rank {
 		return Rank.valueOf(ordinal);
 	}
 
-	// convenience method
-	public BoardArea on(Board board) {
-		return asRectangle().asArea().on(board);
-	}
-	
 	public int difference(Rank that) {
 		if (that == null) throw new IllegalArgumentException("null that");
 		return this.ordinal() - that.ordinal();

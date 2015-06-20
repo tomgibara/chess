@@ -11,9 +11,10 @@ public class TestRender {
 		//Board board = Notation.parseFENBoard("7r/1k2pn1R/8/1r1p4/8/3K1B1q/8/1R6");
 		//Board board = Notation.parseFENBoard("r1b1kb1r/pp1n1p1p/2p1p1pn/q3N3/2BP1B2/2N5/PPP2PPP/R2QK2R");
 		//Board board = Notation.parseFENBoard("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R");
-		BoardRenderer render = new BoardRenderer(800);
-		render.render(board);
-		ImageUtil.showImage("Result", render.getImage());
+		BoardRenderer renderer = new BoardRenderer(800);
+		renderer.render(board);
+		renderer.render(board.computeMoves(MoveConstraint.defaultBlack));
+		ImageUtil.showImage("Result", renderer.getImage());
 	}
 	
 }

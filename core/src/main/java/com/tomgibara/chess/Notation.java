@@ -9,8 +9,8 @@ public class Notation {
 	public static Board parseFENBoard(String str) {
 		String[] split = SLASH.split(str);
 		if (split.length != 8) throw new IllegalArgumentException("Incorrect number of ranks: " + split.length);
-		Arrangement a = new Arrangement();
-		ColouredPiece[] pieces = new ColouredPiece[8];
+		Pieces ps = new Pieces();
+		Piece[] pieces = new Piece[8];
 		for (Rank rank : Rank.values()) {
 			String s = split[7 - rank.ordinal()];
 			int len = s.length();
@@ -24,13 +24,13 @@ public class Notation {
 					for (; n > 0; n--) pieces[p++] = null;
 				} else {
 					pieces[p++] = Character.isLowerCase(c) ?
-							Piece.valueOf(Character.toUpperCase(c)).black() :
-							Piece.valueOf(c).white();
+							PieceType.valueOf(Character.toUpperCase(c)).black() :
+							PieceType.valueOf(c).white();
 				}
 			}
-			a.set(rank.asRectangle().getSquares(), pieces);
+			ps.set(rank.asArea(), pieces);
 		}
-		return a.toBoard();
+		return ps.newBoard();
 	}
 	
 }

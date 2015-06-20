@@ -1,111 +1,83 @@
 package com.tomgibara.chess;
 
-import java.util.AbstractSet;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Iterator;
-import java.util.Set;
 
-public class Pieces extends AbstractSet<Piece> {
+final public class Pieces extends SquareMap<Piece> {
 
-	private static final Pieces[] pieces = new Pieces[64];
+	private Pieces(Store<Piece> store) {
+		super(store);
+	}
 	
-	static {
-		for (int i = 0; i < 64; i++) {
-			pieces[i] = new Pieces(i);
+	public Pieces() {
+		super(new Piece[64], 0);
+	}
+	
+	public Pieces(Piece[] pieces) {
+		super(pieces);
+	}
+	
+	public Board newBoard() {
+		return new Board(this);
+	}
+
+	public Pieces set(Square square, Piece piece) {
+		if (square == null) throw new IllegalArgumentException("null square");
+		if (piece == null) {
+			remove(square);
+		} else {
+			put(square, piece);
 		}
+		return this;
 	}
 	
-	public static Pieces containing(
-			boolean pawn,
-			boolean knight,
-			boolean bishop,
-			boolean rook,
-			boolean queen,
-			boolean king
-			) {
-		int ordinal = 0;
-		if (pawn  ) ordinal +=  1;
-		if (knight) ordinal +=  2;
-		if (bishop) ordinal +=  4;
-		if (rook  ) ordinal +=  8;
-		if (queen ) ordinal += 16;
-		if (king  ) ordinal += 32;
-		return Pieces.pieces[ordinal];
-	}
-	
-	
-	public static Pieces containing(Collection<Piece> pieces) {
+	public Pieces set(Area area, Piece... pieces) {
+		if (area == null) throw new IllegalArgumentException("null area");
 		if (pieces == null) throw new IllegalArgumentException("null pieces");
-		if (pieces instanceof Pieces) return (Pieces) pieces;
-		return containing(
-				pieces.contains(Piece.PAWN),
-				pieces.contains(Piece.KNIGHT),
-				pieces.contains(Piece.BISHOP),
-				pieces.contains(Piece.ROOK),
-				pieces.contains(Piece.QUEEN),
-				pieces.contains(Piece.KING)
-				);
+		update(area.getSquares(), pieces);
+		return this;
 	}
 	
-	public static Pieces containing(Piece... pieces) {
-		Set<Piece> set = EnumSet.noneOf(Piece.class);
-		for (Piece piece : pieces) {
-			set.add(piece);
-		}
-		return containing(set);
+	public Pieces fill(Area area, Piece piece) {
+		if (area == null) throw new IllegalArgumentException("null area");
+		area.getSquares().forEach(s -> put(s, piece));
+		return this;
 	}
 	
-	public final int ordinal;
-	private final Piece[] elements;
+	public Pieces swapColours() {
+		forEach( (s, p) -> put(s, p.getSwapped()));
+		return this;
+	}
 	
-	private Pieces(int ordinal) {
-		this.ordinal = ordinal;
-		int length = Integer.bitCount(ordinal);
-		elements = new Piece[length];
-		//TODO create accessor without array copy
-		Piece[] ps = Piece.values();
-		int e = 0;
-		for (int i = 0; i < ps.length; i++) {
-			if ((ordinal & 1 << i) != 0) {
-				elements[e++] = ps[i];
+	//TODO ugly and messy :(
+	@Override
+	public Pieces immutable() {
+		return (Pieces) super.immutable();
+	}
+	
+	@Override
+	public Pieces mutableCopy() {
+		return (Pieces) super.mutableCopy();
+	}
+	
+	@Override
+	Pieces newInstance(Store<Piece> store) {
+		return new Pieces(store);
+	}
+
+	private void update(Squares set, Piece... pieces) {
+		final int length = pieces.length;
+		if (length > 0) {
+			int i = 0;
+			for (Iterator<Square> it = set.iterator(); i < length && it.hasNext(); i++) {
+				Square square = it.next();
+				Piece piece = pieces[i];
+				if (piece == null) {
+					remove(square);
+				} else {
+					put(square, piece);
+				}
 			}
 		}
-	}
-	
-	@Override
-	public int size() {
-		return elements.length;
-	}
-	
-	@Override
-	public boolean isEmpty() {
-		return ordinal == 0;
-	}
-	
-	@Override
-	public boolean contains(Object o) {
-		if (!(o instanceof Piece)) return false;
-		Piece p = (Piece) o;
-		return (ordinal & 1 << p.ordinal()) != 0;
-	}
-	
-	@Override
-	public boolean containsAll(Collection<?> c) {
-			return c instanceof Pieces ?
-					(~ordinal & ((Pieces) c).ordinal) == 0 :
-						super.containsAll(c);
-	}
-	
-	@Override
-	public Iterator<Piece> iterator() {
-		//TODO use direct iterator implementation
-		return Arrays.asList(elements).iterator();
-	}
-	
-	public boolean isFull() {
-		return ordinal == 63;
 	}
 	
 }

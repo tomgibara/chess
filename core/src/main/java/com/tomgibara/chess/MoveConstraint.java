@@ -1,5 +1,6 @@
 package com.tomgibara.chess;
 
+//TODO ordinate entirely
 public final class MoveConstraint {
 
 	private static int ordinal(Colour toMove, boolean mayCastleC, boolean mayCastleG) {

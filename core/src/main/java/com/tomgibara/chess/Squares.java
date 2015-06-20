@@ -76,7 +76,7 @@ public class Squares extends AbstractSet<Square> {
 	public static Squares immutable(Square... squares) {
 		return new Squares( maskSquares(squares) );
 	}
-
+	
 	long squares;
 
 	Squares(long squares) {
@@ -93,6 +93,37 @@ public class Squares extends AbstractSet<Square> {
 	
 	public Area asArea() {
 		return Area.squares(this);
+	}
+	
+	public Square squareFurthestFrom(Square origin) {
+		if (origin == null) throw new IllegalArgumentException("null origin");
+		if (isEmpty()) return null;
+		return distanceSelectedSquare(origin, false);
+	}
+
+	public Square squareNearestTo(Square origin) {
+		if (origin == null) throw new IllegalArgumentException("null origin");
+		if (isEmpty()) return null;
+		return distanceSelectedSquare(origin, true);
+	}
+
+	//TODO manhattan specific
+	//TODO could have a clever implementation based on cached optimal search order?
+	private Square distanceSelectedSquare(Square origin, boolean nearest) {
+		int originOrdinal = origin.ordinal;
+		int bestO = -1;
+		int bestD = nearest ? 15 : -1;
+		long bits = squares;
+		for (int ordinal = 0; ordinal < 64 && bits != 0; ordinal++, bits >>>= 1) {
+			if ((bits & 1L) == 1L) {
+				int d = Square.manhattanDistance(ordinal, originOrdinal);
+				if ((nearest && d < bestD) || (!nearest && d > bestD)) {
+					bestO = ordinal;
+					bestD = d;
+				}
+			}
+		}
+		return Square.at(bestO);
 	}
 	
 	@Override
@@ -187,6 +218,10 @@ public class Squares extends AbstractSet<Square> {
 
 	long mask() {
 		return squares;
+	}
+	
+	boolean contains(int ordinal) {
+		return (squares & 1L << ordinal) != 0L;
 	}
 	
 	//TODO support publicly as containsAny?

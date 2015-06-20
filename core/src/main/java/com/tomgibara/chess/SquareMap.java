@@ -10,8 +10,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-//TODO add cons from coll.
-public final class SquareMap<V> extends AbstractMap<Square, V> {
+public class SquareMap<V> extends AbstractMap<Square, V> {
 
 	public interface Store<V> {
 		
@@ -222,29 +221,28 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	}
 	
 	public SquareMap<V> immutable() {
-		return store.isMutable() ? new SquareMap<>(store.immutable()) : this;
+		return store.isMutable() ? newInstance(store.immutable()) : this;
 	}
 	
 	public SquareMap<V> mutableCopy() {
-		return new SquareMap<>(store.mutableCopy());
+		return newInstance(store.mutableCopy());
 	}
 	
 	@Override
-	public V get(Object key) {
+	public final V get(Object key) {
 		if (!(key instanceof Square)) return null;
 		Square sqr = (Square) key;
-		if (store.isMutable() && !squares.contains(sqr)) return null;
 		return get(sqr.ordinal);
 	}
 	
 	@Override
-	public boolean containsKey(Object key) {
+	public final boolean containsKey(Object key) {
 		if (!(key instanceof Square)) return false;
 		return get( ((Square) key).ordinal ) != null;
 	}
 	
 	@Override
-	public boolean containsValue(Object value) {
+	public final boolean containsValue(Object value) {
 		for (int i = 0; i < 64; i++) {
 			V v = store.get(i);
 			if (v != null && v.equals(value)) return true;
@@ -253,20 +251,20 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	}
 	
 	@Override
-	public V put(Square key, V value) {
+	public final V put(Square key, V value) {
 		if (key == null) throw new IllegalArgumentException("null key");
 		if (value == null) throw new IllegalArgumentException("null value");
 		return set(key.ordinal, value);
 	}
 	
 	@Override
-	public V remove(Object key) {
+	public final V remove(Object key) {
 		if (!(key instanceof Square)) return null;
 		return set(((Square) key).ordinal, null);
 	}
 	
 	@Override
-	public boolean remove(Object key, Object value) {
+	public final boolean remove(Object key, Object value) {
 		if (value == null) return false;
 		if (!(key instanceof Square)) return false;
 		Square sqr = (Square) key;
@@ -277,7 +275,7 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	}
 	
 	@Override
-	public void forEach(BiConsumer<? super Square, ? super V> action) {
+	public final void forEach(BiConsumer<? super Square, ? super V> action) {
 		long bits = squares.mask();
 		for (int ordinal = 0; ordinal < 64 && bits != 0; ordinal++, bits >>>= 1) {
 			if ((bits & 1L) == 1L) {
@@ -287,34 +285,34 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	}
 	
 	@Override
-	public int size() {
+	public final int size() {
 		return store.size();
 	}
 	
 	@Override
-	public boolean isEmpty() {
+	public final boolean isEmpty() {
 		return store.size() == 0;
 	}
 	
 	@Override
-	public void clear() {
+	public final void clear() {
 		store.clear();
 	}
 	
 	@Override
-	public Squares keySet() {
+	public final Squares keySet() {
 		return squares;
 	}
 	
 	@Override
-	public Set<Map.Entry<Square, V>> entrySet() {
+	public final Set<Map.Entry<Square, V>> entrySet() {
 		return entrySet == null ? entrySet = new EntrySet() : entrySet;
 	}
 	
 	//TODO implement efficient values()?
 
 	@Override
-	public boolean equals(Object o) {
+	public final boolean equals(Object o) {
 		if (o == this) return true;
 		// optimize for comparison with other square maps - a common case
 		if (o instanceof SquareMap<?>) {
@@ -334,14 +332,14 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 	//TODO yuck
 	// want a specific piece map extension - replaces Arrangement?
 	public Squares[] colourPartition() {
-		if (store.valueType() != ColouredPiece.class) throw new IllegalStateException();
+		if (store.valueType() != Piece.class) throw new IllegalStateException();
 		Squares[] partition = new Squares[2];
 		partition[0] = new MutableSquares();
 		partition[1] = new MutableSquares();
 		for (int i = 0; i < 64; i++) {
 			V v = store.get(i);
 			if (v == null) continue;
-			ColouredPiece piece = (ColouredPiece) store.get(i);
+			Piece piece = (Piece) store.get(i);
 			partition[ piece.colour.ordinal() ].add(Square.at(i));
 		}
 		partition[0] = Squares.immutable( partition[0] );
@@ -349,17 +347,31 @@ public final class SquareMap<V> extends AbstractMap<Square, V> {
 		return partition;
 	}
 	
+	SquareMap<V> newInstance(Store<V> store) {
+		return new SquareMap<V>(store);
+	}
+	
 	private V get(int ordinal) {
+		if (store.isMutable() && !squares.contains(ordinal)) return null;
 		return store.get(ordinal);
 	}
 	
 	private V set(int ordinal, V value) {
-		return store.set(ordinal, value);
+		V old = store.set(ordinal, value);
+		if ((old == null) != (value == null)) {
+			MutableSquares squares = (MutableSquares) this.squares;
+			if (value == null) {
+				squares.remove(ordinal);
+			} else {
+				squares.add(ordinal);
+			}
+		}
+		return old;
 	}
 	
 	private int enumSize() {
 		Class<?> type = store.valueType();
-		if (type == ColouredPiece.class) return ColouredPiece.COUNT;
+		if (type == Piece.class) return Piece.COUNT;
 		if (!type.isEnum()) throw new IllegalStateException();
 		return type.getEnumConstants().length;
 	}

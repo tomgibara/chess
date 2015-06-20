@@ -6,5 +6,5 @@
     <groupId>com.tomgibara.chess</groupId>
     <artifactId>chess</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-  </parent>    
+  </parent>
 </project>

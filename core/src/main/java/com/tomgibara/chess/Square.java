@@ -55,6 +55,18 @@ public final class Square {
 		return squares[ (rank.ordinal() <<3) + file.ordinal() ];
 	}
 	
+	public static int manhattanDistance(Square a, Square b) {
+		return File.distance(a.file, b.file) + Rank.distance(a.rank, b.rank);
+	}
+
+	static int manhattanDistance(int ord1, int ord2) {
+		int f1 = ord1 & 7;
+		int r1 = ord1 >> 3;
+		int f2 = ord2 & 7;
+		int r2 = ord2 >> 3;
+		return Math.abs(f1 - f2) + Math.abs(r1 - r2);
+	}
+
 	public final File file;
 	public final Rank rank;
 	public final int ordinal;
@@ -72,6 +84,7 @@ public final class Square {
 	private Square flipped;
 	private Square rotated;
 	private Rectangle rectangle;
+	private Area area;
 	private final String string;
 	
 	private Square(int ordinal) {
@@ -138,6 +151,13 @@ public final class Square {
 		return rectangle;
 	}
 	
+	public Area asArea() {
+		if (area == null) {
+			area = asRectangle().asArea();
+		}
+		return area;
+	}
+	
 	public Move to(Square to) {
 		return Move.between(this, to);
 	}
@@ -146,11 +166,6 @@ public final class Square {
 		return Move.between(from, this);
 	}
 	
-	// convenience method
-	public BoardArea on(Board board) {
-		return asRectangle().asArea().on(board);
-	}
-
 	@Override
 	public String toString() {
 		return string;

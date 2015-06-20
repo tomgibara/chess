@@ -35,7 +35,7 @@ public class MoveTest extends TestCase {
 	
 	public void testNoKnightOverlap() {
 		for (Move move : Move.possibleMoves()) {
-			assertFalse( move.isPossibleFor(Piece.KNIGHT) && move.isPossibleFor(Piece.QUEEN) );
+			assertFalse( move.isPossibleFor(PieceType.KNIGHT) && move.isPossibleFor(PieceType.QUEEN) );
 		}
 	}
 	
