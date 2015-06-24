@@ -17,7 +17,7 @@ public class Position {
 	//TODO derive as needed?
 	public final MoveConstraint constraint;
 	
-	private BoardMoves moves;
+	private PositionMoves moves;
 	
 	Position(Sequence sequence, Board board, Colour toMove, CastlingRights castlingRights, File enPassantFile, int moveNumber, int stalemateClock) {
 		this.sequence = sequence;
@@ -61,17 +61,17 @@ public class Position {
 		}
 	}
 
-	public BoardMoves moves() {
+	public PositionMoves moves() {
 		checkIndex();
 		if (moves == null) {
-			moves = new BoardMoves(this, Area.entire());
+			moves = new PositionMoves(this, Area.entire());
 		}
 		return moves;
 	}
 	
-	public BoardMoves computeMoves(Area area) {
+	public PositionMoves computeMoves(Area area) {
 		checkIndex();
-		return new BoardMoves(this, area);
+		return new PositionMoves(this, area);
 	}
 	
 	public void discard() {

@@ -128,7 +128,7 @@ public class BoardRenderer {
 		//g.drawString("+pPk", 0.5f, 0.5f);
 	}
 
-	public void render(BoardMoves moves) {
+	public void render(PositionMoves moves) {
 		Colour colour = moves.position.toMove;
 		SquareMap<List<Move>> map = moves.movesByOriginSquare();
 		g.setStroke(ARROW_STROKE);

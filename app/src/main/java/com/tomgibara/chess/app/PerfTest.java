@@ -1,7 +1,7 @@
 package com.tomgibara.chess.app;
 
 import com.tomgibara.chess.Board;
-import com.tomgibara.chess.BoardMoves;
+import com.tomgibara.chess.PositionMoves;
 import com.tomgibara.chess.Colour;
 import com.tomgibara.chess.MoveConstraint;
 import com.tomgibara.chess.Notation;
@@ -17,7 +17,7 @@ public class PerfTest {
 		System.out.println(initial);
 		long start = System.currentTimeMillis();
 		for (int i = 0; i < repetitions; i++) {
-			BoardMoves moves = initial.pieces.newBoard().newPositionFor(colour).moves();
+			PositionMoves moves = initial.pieces.newBoard().newPositionFor(colour).moves();
 		}
 		long finish = System.currentTimeMillis();
 		System.out.println(finish - start);

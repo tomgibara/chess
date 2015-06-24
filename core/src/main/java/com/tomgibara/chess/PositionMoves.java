@@ -7,8 +7,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-//TODO rename to PositionMoves
-public class BoardMoves extends AbstractList<Move> {
+public class PositionMoves extends AbstractList<Move> {
 
 	private static final int MAX_MOVES = 256;
 
@@ -30,7 +29,7 @@ public class BoardMoves extends AbstractList<Move> {
 	private Move[] moves;
 	private int size = 0;
 	
-	BoardMoves(Position position, Area area) {
+	PositionMoves(Position position, Area area) {
 		this.position = position;
 		this.area = area;
 		
@@ -85,7 +84,7 @@ public class BoardMoves extends AbstractList<Move> {
 	}
 	
 	public SquareMap<List<Move>> movesByOriginSquare() {
-		SquareMap<List<Move>> map = Arrays.stream(moves).collect(Collectors.groupingBy(m -> m.from, BoardMoves::newMap, Collectors.toList()));
+		SquareMap<List<Move>> map = Arrays.stream(moves).collect(Collectors.groupingBy(m -> m.from, PositionMoves::newMap, Collectors.toList()));
 		//TODO how to combine these in one stream operation?
 		map.values().forEach( l -> l.sort(moveDistComp) );
 		return map;

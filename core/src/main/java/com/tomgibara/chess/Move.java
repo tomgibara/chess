@@ -429,7 +429,7 @@ public final class Move implements Comparable<Move> {
 			return reverse ? (ptr >> 6) & 0x3f : ptr & 0x3f;
 		}
 
-		void populateMoves(BoardMoves moves, Squares checkers, Squares interpose) {
+		void populateMoves(PositionMoves moves, Squares checkers, Squares interpose) {
 			Position position = moves.position;
 			Board board = position.board;
 			MoveConstraint constraint = position.constraint;
