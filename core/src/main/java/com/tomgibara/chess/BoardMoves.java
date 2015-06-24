@@ -1,15 +1,13 @@
 package com.tomgibara.chess;
 
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+//TODO rename to PositionMoves
 public class BoardMoves extends AbstractList<Move> {
 
 	private static final int MAX_MOVES = 256;
@@ -26,20 +24,20 @@ public class BoardMoves extends AbstractList<Move> {
 		return new SquareMap<List<Move>>(new List[64], 0);
 	}
 	
-	public final Board board;
+	public final Position position;
 	public final Area area;
-	public final MoveConstraint constraint;
 	
 	private Move[] moves;
 	private int size = 0;
 	
-	BoardMoves(Board board, Area area, MoveConstraint constraint) {
-		this.board = board;
+	BoardMoves(Position position, Area area) {
+		this.position = position;
 		this.area = area;
-		this.constraint = constraint;
 		
 		moves = tmpArray.get();
 
+		Board board = position.board;
+		MoveConstraint constraint = position.constraint;
 		SquareMap<Move> checks = board.withColour(constraint.toMove).checks();
 		Squares checkers = checks.keySet();
 		Squares interpose = checks.size() == 1 ? checks.get(checkers.only()).intermediateSquares : Squares.empty();

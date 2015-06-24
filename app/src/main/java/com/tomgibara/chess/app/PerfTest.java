@@ -12,14 +12,12 @@ public class PerfTest {
 		int repetitions = Integer.parseInt(args[1]);
 		Board initial = Notation.parseFENBoard(args[2]);
 		Colour colour = Colour.valueOf(args[3].toLowerCase().charAt(0));
-		MoveConstraint constraint = MoveConstraint.defaultForColour(colour);
 
 		System.out.println("EVALUATING:");
 		System.out.println(initial);
 		long start = System.currentTimeMillis();
 		for (int i = 0; i < repetitions; i++) {
-			Board board = initial.pieces.newBoard();
-			BoardMoves moves = board.computeMoves(constraint);
+			BoardMoves moves = initial.pieces.newBoard().newPositionFor(colour).moves();
 		}
 		long finish = System.currentTimeMillis();
 		System.out.println(finish - start);

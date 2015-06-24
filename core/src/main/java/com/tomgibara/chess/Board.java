@@ -62,20 +62,15 @@ public final class Board {
 	Board(Pieces pieces) {
 		this.pieces = pieces.immutable();
 	}
+	
+	public Position newPositionFor(Colour toMove) {
+		return new Sequence(this, toMove).position();
+	}
 
-	// moves
-	
-	public BoardMoves computeMoves(MoveConstraint constraint) {
-		if (constraint == null) throw new IllegalArgumentException("null constraint");
-		return new BoardMoves(this, Area.entire(), constraint);
+	public Position newPositionFor(Colour toMove, CastlingRights castlingRights, File enPassantFile) {
+		return new Sequence(this, toMove, castlingRights, enPassantFile).position();
 	}
-	
-	public BoardMoves computeMoves(Area area, MoveConstraint constraint) {
-		if (area == null) throw new IllegalArgumentException("null area");
-		if (constraint == null) throw new IllegalArgumentException("null constraint");
-		return new BoardMoves(this, area, constraint);
-	}
-	
+
 	// info methods
 	
 	public ColouredBoardInfo withColour(Colour colour) {

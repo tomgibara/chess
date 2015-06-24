@@ -1,23 +1,29 @@
 package com.tomgibara.chess.app;
 
+import java.util.Arrays;
+
 import com.tomgibara.chess.Board;
 import com.tomgibara.chess.BoardRenderer;
 import com.tomgibara.chess.Colour;
 import com.tomgibara.chess.MoveConstraint;
 import com.tomgibara.chess.Notation;
+import com.tomgibara.chess.Position;
 import com.tomgibara.graphics.util.ImageUtil;
 
 public class ShowTest {
 
 	public static void main(String[] args) {
-		Board board = Notation.parseFENBoard(args[1]);
-		Colour colour = Colour.valueOf(args[2].toLowerCase().charAt(0));
-		MoveConstraint constraint = MoveConstraint.defaultForColour(colour);
-		int size = Integer.parseInt(args[3]);
+		int size;
+		{
+			int length = args.length;
+			size = Integer.parseInt(args[length - 1]);
+			args = Arrays.copyOfRange(args, 1, length -1);
+		}
+		Position position = Notation.parseFENPosition(args);
 
-		BoardRenderer renderer = new BoardRenderer(size);
-		renderer.render(board);
-		renderer.render(board.computeMoves(constraint));
+		BoardRenderer renderer = new BoardRenderer(size, true);
+		renderer.render(position.board);
+		renderer.render(position.moves());
 		ImageUtil.showImage("Result", renderer.getImage());
 	}
 	
