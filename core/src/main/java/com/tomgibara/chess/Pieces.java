@@ -63,6 +63,43 @@ final public class Pieces extends SquareMap<Piece> {
 	Pieces newInstance(Store<Piece> store) {
 		return new Pieces(store);
 	}
+	
+	void make(Colour colour, Move move, MovePieces pieces) {
+		PieceType moved = pieces.moved;
+		remove(move.from);
+		switch (moved) {
+		case KING:
+			if (move.isCastling()) {
+				Move rookMove = move.inducedRookMove();
+				remove(rookMove.from);
+				put(rookMove.to, PieceType.ROOK.coloured(colour));
+			}
+			break;
+		case PAWN:
+			if (move.isPromotion()) {
+				put(move.to, pieces.promotion.coloured(colour));
+				return;
+			}
+			break;
+			default: /* fall through */
+		}
+		put(move.to, moved.coloured(colour));
+	}
+	
+	void takeBack(Colour colour, Move move, MovePieces pieces) {
+		PieceType moved = pieces.moved;
+		put(move.from, moved.coloured(colour));
+		if (pieces.captured == null) {
+			remove(move.to);
+		} else {
+			put(move.to, pieces.captured.coloured(colour.opposite()) );
+		}
+		if (moved == PieceType.KING && move.isCastling()) {
+			Move rookMove = move.inducedRookMove();
+			remove(rookMove.to);
+			put(rookMove.from, PieceType.ROOK.coloured(colour));
+		}
+	}
 
 	private void update(Squares set, Piece... pieces) {
 		final int length = pieces.length;
