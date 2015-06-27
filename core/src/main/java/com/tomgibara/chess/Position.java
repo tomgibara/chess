@@ -1,8 +1,9 @@
 package com.tomgibara.chess;
 
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
-public class Position {
+public final class Position {
 
 	public final Sequence sequence;
 	private final int index;
@@ -79,6 +80,32 @@ public class Position {
 		sequence.discard(index);
 	}
 	
+	public Position makeMove(PositionMove move) {
+		//?
+		(isLast() ? sequence : sequence.newContinuation()).addMove(move);
+	}
+
+	@Override
+	public int hashCode() {
+		return board.hashCode() + 0x0f70 * toMove.hashCode() + castlingRights.hashCode() + Objects.hashCode(enPassantFile) + 0x7f0000 * stalemateClock;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) return true;
+		if (!(obj instanceof Position)) return false;
+		Position that = (Position) obj;
+		
+		if (this.toMove != that.toMove) return false;
+		if (this.castlingRights != that.castlingRights) return false;
+		if (this.enPassantFile != that.enPassantFile) return false;
+		if (this.stalemateClock != that.stalemateClock) return false;
+		
+		return this.board.equals(that.board);
+	}
+	
+	//TODO toString using notation?
+
 	Position copy(Sequence owner) {
 		checkIndex();
 		return new Position(sequence, this);
@@ -87,8 +114,6 @@ public class Position {
 	void markAsDiscarded() {
 		this.discarded = true;
 	}
-	
-	//TODO toString using notation?
 	
 	private void checkDiscarded() {
 		if (discarded) throw new IllegalStateException();
@@ -103,4 +128,5 @@ public class Position {
 	private boolean isLast() {
 		return index + 1 == sequence.length();
 	}
+
 }

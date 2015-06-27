@@ -23,15 +23,16 @@ import java.util.stream.Collectors;
 
 public final class Move implements Comparable<Move> {
 
-	private static final int WHITE_PAWN     = 0b000000001;
-	private static final int BLACK_PAWN     = 0b000000010;
-	private static final int PAWN_CAPTURE   = 0b000000100;
-	private static final int KNIGHT         = 0b000001000;
-	private static final int BISHOP         = 0b000010000;
-	private static final int ROOK           = 0b000100000;
-	private static final int KING           = 0b001000000;
-	private static final int WHITE_CASTLE   = 0b010000000;
-	private static final int BLACK_CASTLE   = 0b100000000;
+	private static final int WHITE_PAWN     = 0b0000000001;
+	private static final int BLACK_PAWN     = 0b0000000010;
+	private static final int PAWN_CAPTURE   = 0b0000000100;
+	private static final int PROMOTION      = 0b0000001000;
+	private static final int KNIGHT         = 0b0000010000;
+	private static final int BISHOP         = 0b0000100000;
+	private static final int ROOK           = 0b0001000000;
+	private static final int KING           = 0b0010000000;
+	private static final int WHITE_CASTLE   = 0b0100000000;
+	private static final int BLACK_CASTLE   = 0b1000000000;
 	
 	private static final int WHITE_KING = KING | WHITE_CASTLE;
 	private static final int BLACK_KING = KING | BLACK_CASTLE;
@@ -168,6 +169,9 @@ public final class Move implements Comparable<Move> {
 					(from.rank != RK_8 && dr == -1 && adf <= 1) ||
 					(from.rank == RK_7 && dr == -2 && df  == 0);
 			boolean pawnCapture = (whitePawn || blackPawn) && adf != 0;
+			boolean promotion =
+					whitePawn && to.rank == Rank.RK_8 ||
+					blackPawn && to.rank == Rank.RK_1;
 			boolean knight = adf < 3 && adr < 3 && adf + adr == 3;
 			boolean bishop = df == dr || df == -dr;
 			boolean rook = df == 0 || dr == 0;
@@ -184,6 +188,7 @@ public final class Move implements Comparable<Move> {
 			if (whitePawn)   flags |= WHITE_PAWN;
 			if (blackPawn)   flags |= BLACK_PAWN;
 			if (pawnCapture) flags |= PAWN_CAPTURE;
+			if (promotion)   flags |= PROMOTION;
 			if (knight)      flags |= KNIGHT;
 			if (bishop)      flags |= BISHOP;
 			if (rook)        flags |= ROOK;
@@ -221,6 +226,14 @@ public final class Move implements Comparable<Move> {
 	
 	public boolean isPawnCapture() {
 		return anySet(PAWN_CAPTURE);
+	}
+	
+	public boolean isPromotion() {
+		return anySet(PROMOTION);
+	}
+	
+	public boolean isPromotion(Position position) {
+		return anySet(PROMOTION) && position.board.pieces.get(from).type == PieceType.PAWN;
 	}
 	
 	public boolean isPossibleFor(PieceType type) {
@@ -463,14 +476,14 @@ public final class Move implements Comparable<Move> {
 						Interposition pin = board.withColour(piece.colour).pinnedToKing().get(square);
 						if (pin != null && !pin.move.spannedSquares.contains(move.to)) continue; // piece breaks pin on king
 					}
-					moves.add(move);
+					moves.record(move);
 				}
 			} else { // check
 				// we can try to interpose
 				for (Square i : interpose) {
 					Move move = Move.between(square, i);
 					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
-						moves.add(move);
+						moves.record(move);
 					}
 				}
 				// we can try to capture
@@ -478,7 +491,7 @@ public final class Move implements Comparable<Move> {
 				if (c != null) {
 					Move move = Move.between(square, c);
 					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
-						moves.add(move);
+						moves.record(move);
 					}
 				}
 			}

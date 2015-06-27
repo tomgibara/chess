@@ -31,7 +31,7 @@ public class Sequence {
 		if (castlingRights == null) throw new IllegalArgumentException("null castlingRights");
 		if (moveNumber < 0) throw new IllegalArgumentException("negative moveNumber");
 		if (stalemateClock < 0) throw new IllegalArgumentException("negative stalemateClock");
-		positions.add( new Position(this, 0, board, toMove, castlingRights, enPassantFile, moveNumber, stalemateClock) );
+		positions.add( new Position(this, board, toMove, castlingRights, enPassantFile, moveNumber, stalemateClock) );
 	}
 	
 	public int length() {
@@ -43,11 +43,13 @@ public class Sequence {
 	}
 	
 	public Position initialPosition() {
-		return positions.get(0);
+		index = 0;
+		return position();
 	}
 	
 	public Position finalPosition() {
-		return positions.get(positions.size() - 1);
+		index = positions.size() - 1;
+		return position();
 	}
 	
 	public Position position(int index) {
