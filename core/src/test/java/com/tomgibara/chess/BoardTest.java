@@ -64,7 +64,7 @@ public class BoardTest extends TestCase {
 	
 	public void testMoves() {
 		Board board = Board.initial();
-		List<Move> moves = board.newPositionFor(Colour.WHITE).moves().moves();
+		List<Move> moves = board.newPositionFor(Colour.WHITE).moves().moveList();
 		assertEquals(20, moves.size());
 	}
 
@@ -95,9 +95,9 @@ public class BoardTest extends TestCase {
 		Board board = Notation.parseFENBoard("7r/1k2pn1R/8/1r1p4/8/3K1B1q/8/1R6");
 		assertInterMovesAre("h3-d3", board.withColour(WHITE).pinsToKing().values());
 		assertInterMovesAre("f3-b7,b1-b7", board.withColour(BLACK).pinsToKing().values());
-		assertMovesAre("b5-b6,b5-b4,b5-b3,b5-b2,b5-b1", board.newPositionFor(BLACK).computeMoves(at("b5").asArea()).moves());
-		assertMovesAre("", board.newPositionFor(WHITE).computeMoves(at("f3").asArea()).moves());
-		assertMovesAre("h3-g3,h3-f3,h3-h2,h3-h1,h3-g2,h3-f1,h3-g4,h3-f5,h3-e6,h3-d7,h3-c8,h3-h4,h3-h5,h3-h6,h3-h7", board.newPositionFor(BLACK).computeMoves(at("h3").asArea()).moves());
+		assertMovesAre("b5-b6,b5-b4,b5-b3,b5-b2,b5-b1", board.newPositionFor(BLACK).computeMoves(at("b5").asArea()).moveList());
+		assertMovesAre("", board.newPositionFor(WHITE).computeMoves(at("f3").asArea()).moveList());
+		assertMovesAre("h3-g3,h3-f3,h3-h2,h3-h1,h3-g2,h3-f1,h3-g4,h3-f5,h3-e6,h3-d7,h3-c8,h3-h4,h3-h5,h3-h6,h3-h7", board.newPositionFor(BLACK).computeMoves(at("h3").asArea()).moveList());
 	}
 	
 	public void testChecks() {
@@ -110,36 +110,36 @@ public class BoardTest extends TestCase {
 		Board board = Notation.parseFENBoard("2K5/1B4N1/4k3/4P2Q/8/8/8/8");
 		//TODO need a better way to get moves for square
 		Area kingsArea = board.squaresOccupiedBy(PieceType.KING.black()).asArea();
-		List<Move> kingMoves = board.newPositionFor(BLACK).computeMoves(kingsArea).moves();
+		List<Move> kingMoves = board.newPositionFor(BLACK).computeMoves(kingsArea).moveList();
 		assertMovesAre("e6-e7", kingMoves);
 	}
 	
 	public void testStopCheck() {
 		Board board = Notation.parseFENBoard("8/3k2Q1/8/4qn2/8/3K4/8/8");
-		List<Move> moves = board.newPositionFor(BLACK).computeMoves(board.pieces.keySet().asArea()).moves();
+		List<Move> moves = board.newPositionFor(BLACK).computeMoves(board.pieces.keySet().asArea()).moveList();
 		assertMovesAre("e5-e7,e5-g7,f5-e7,f5-g7,d7-c6,d7-d6,d7-e6,d7-c8,d7-d8,d7-e8", moves);
 	}
 	
 	public void testEnPassant() {
 		Board board = Notation.parseFENBoard("4k3/8/8/8/pP6/8/8/4K3");
 		Area area = board.pieces.keySet().asArea();
-		List<Move> moves1 = board.newPositionFor(BLACK, ______WG_WC, File.FL_B).computeMoves(area).moves();
+		List<Move> moves1 = board.newPositionFor(BLACK, ______WG_WC, File.FL_B).computeMoves(area).moveList();
 		assertTrue(moves1.contains(move("a4-b3")));
-		List<Move> moves2 = board.newPositionFor(BLACK, ______WG_WC, null).computeMoves(area).moves();
+		List<Move> moves2 = board.newPositionFor(BLACK, ______WG_WC, null).computeMoves(area).moveList();
 		assertFalse(moves2.contains(move("a4-b3")));
 	}
 	
 	public void testCastling() {
 		Board board = Notation.parseFENBoard("4k3/8/8/q7/8/r3b3/3PP3/R3Kb1r");
 		Area area = board.squaresOccupiedBy(PieceType.KING.white()).asArea();
-		List<Move> moves1 = board.newPositionFor(WHITE, CastlingRights._________WC, null).computeMoves(area).moves();
+		List<Move> moves1 = board.newPositionFor(WHITE, CastlingRights._________WC, null).computeMoves(area).moveList();
 		assertTrue(moves1.contains(move("e1-c1")));
-		List<Move> moves2 = board.newPositionFor(WHITE, CastlingRights.___________, null).computeMoves(area).moves();
+		List<Move> moves2 = board.newPositionFor(WHITE, CastlingRights.___________, null).computeMoves(area).moveList();
 		assertFalse(moves2.contains(move("e1-c1")));
 		
 		board = Notation.parseFENBoard("8/8/8/2b5/1rq5/2k5/5P2/R3K2R");
 		area = board.squaresOccupiedBy(PieceType.KING.white()).asArea();
-		List<Move> moves = board.newPositionFor(WHITE, CastlingRights.______WG_WC, null).computeMoves(area).moves();
+		List<Move> moves = board.newPositionFor(WHITE, CastlingRights.______WG_WC, null).computeMoves(area).moveList();
 		assertTrue(moves.contains(move("e1-c1")));
 		assertFalse(moves.contains(move("e1-g1")));
 	}

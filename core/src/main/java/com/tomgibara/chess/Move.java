@@ -88,6 +88,20 @@ public final class Move implements Comparable<Move> {
 		}
 	}
 	
+	private static int recordMove(int[] moves, int count, Move move, Piece moved, Piece captured) {
+		PieceType movedType = moved.type;
+		PieceType capturedType = captured == null ? null : captured.type;
+		if (movedType == PieceType.PAWN && move.isPromotion()) {
+			moves[count++] = PositionMoves.code(move, MovePieces.promotion(capturedType, PieceType.KNIGHT));
+			moves[count++] = PositionMoves.code(move, MovePieces.promotion(capturedType, PieceType.BISHOP));
+			moves[count++] = PositionMoves.code(move, MovePieces.promotion(capturedType, PieceType.ROOK));
+			moves[count++] = PositionMoves.code(move, MovePieces.promotion(capturedType, PieceType.QUEEN));
+		} else {
+			moves[count++] = PositionMoves.code(move, MovePieces.regular(movedType, capturedType));
+		}
+		return count;
+	}
+	
 	public static List<Move> allMoves() {
 		return allMoves;
 	}
@@ -442,8 +456,7 @@ public final class Move implements Comparable<Move> {
 			return reverse ? (ptr >> 6) & 0x3f : ptr & 0x3f;
 		}
 
-		void populateMoves(PositionMoves moves, Squares checkers, Squares interpose) {
-			Position position = moves.position;
+		int populateMoves(int[] moveCodes, int moveCount, Position position, Squares checkers, Squares interpose) {
 			Board board = position.board;
 			MoveConstraint constraint = position.constraint;
 			SquareMap<Piece> pieces = board.pieces;
@@ -476,14 +489,14 @@ public final class Move implements Comparable<Move> {
 						Interposition pin = board.withColour(piece.colour).pinnedToKing().get(square);
 						if (pin != null && !pin.move.spannedSquares.contains(move.to)) continue; // piece breaks pin on king
 					}
-					moves.record(move);
+					moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
 				}
 			} else { // check
 				// we can try to interpose
 				for (Square i : interpose) {
 					Move move = Move.between(square, i);
 					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
-						moves.record(move);
+						moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
 					}
 				}
 				// we can try to capture
@@ -491,10 +504,12 @@ public final class Move implements Comparable<Move> {
 				if (c != null) {
 					Move move = Move.between(square, c);
 					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
-						moves.record(move);
+						moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
 					}
 				}
 			}
+			
+			return moveCount;
 		}
 
 		private boolean attacks(SquareMap<Piece> pieces, Squares occupied, Square vacated, Squares occupiedByOpposingColour) {

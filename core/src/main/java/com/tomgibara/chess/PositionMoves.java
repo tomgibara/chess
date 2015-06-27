@@ -2,143 +2,232 @@ package com.tomgibara.chess;
 
 import java.util.AbstractList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 //TODO allow move sorting?
 public class PositionMoves {
 
-	private static final int MAX_MOVES = 256;
+	private static final int MOVE_BITS = 12;
+	private static final int MOVE_MASK = (1 << 12) - 1;
 
 	private static final Comparator<? super Move> moveDistComp = (m1, m2) -> m1.spannedSquares.size() - m2.spannedSquares.size();
 
-	private static ThreadLocal<Move[]> tmpArray = new ThreadLocal<Move[]>() {
-		protected Move[] initialValue() {
-			return new Move[MAX_MOVES];
-		}
-	};
-	
 	private static SquareMap<List<Move>> newMap() {
 		return new SquareMap<List<Move>>(new List[64], 0);
 	}
 	
+	private static Move codeMove(int code) {
+		return Move.forOrdinal(code & MOVE_MASK);
+	}
+	
+	private static MovePieces codePieces(int code) {
+		return MovePieces.from(code >> MOVE_BITS);
+	}
+	
+	public static int code(Move move, MovePieces promotion) {
+		return (promotion.ordinal << 12) | move.ordinal;
+	}
+
 	public final Position position;
 	public final Area area;
-	
-	private Move[] movesArray;
-	private int movesSize = 0;
+	private final int[] codes;
+	private MoveList moveList = null;
 
-	private List<Move> moves;
-	private MoveList moveList;
-	
 	PositionMoves(Position position, Area area) {
 		this.position = position;
 		this.area = area;
-		
-		movesArray = tmpArray.get();
+		this.codes = new MovePopulator(position, area).moves();
+	}
+	
+	public int moveCount() {
+		return codes.length;
+	}
+	
+	public Move move(int index) {
+		return codeMove(codes[index]);
+	}
 
-		Board board = position.board;
-		MoveConstraint constraint = position.constraint;
-		SquareMap<Move> checks = board.withColour(constraint.toMove).checks();
-		Squares checkers = checks.keySet();
-		Squares interpose = checks.size() == 1 ? checks.get(checkers.only()).intermediateSquares : Squares.empty();
-		Squares squares = area.getSquares().intersect(board.withColour(constraint.toMove).occupiedSquares());
-		Square square = squares.only();
-		if (square == null) {
-			squares.forEach(s -> Move.possibleMovesFrom(s).populateMoves(this, checkers, interpose));
+	public MovePieces pieces(int index) {
+		return codePieces(codes[index]);
+	}
+	
+	public String notation(int index) {
+		int code = codes[index];
+		Move move = codeMove(code);
+		MovePieces pieces = codePieces(code);
+		StringBuffer sb = new StringBuffer();
+		PieceType type = pieces.moved;
+		boolean capture = pieces.captured != null;
+		if (type == PieceType.PAWN) {
+			if (capture) sb.append(move.from.file).append('x');
+			sb.append(move.to);
+			if (move.isPromotion()) sb.append('=').append(pieces.promotion.character);
 		} else {
-			Move.possibleMovesFrom(square).populateMoves(this, checkers, interpose);
+			sb.append(type.character);
+			Move m = ambiguatingMove(move, pieces);
+			if (m != null) {
+				Square s1 = move.from;
+				Square s2 = m.from;
+				if (s1.file != s2.file) {
+					sb.append(s1.file.character);
+				} else if (s1.rank != s2.rank) {
+					sb.append(s1.rank.character);
+				} else {
+					sb.append(s1);
+				}
+			}
+			if (capture) sb.append('x');
+			sb.append(move.to);
 		}
-//Move.MoveList.bitCountCalls += squares.size();
-		
-		movesArray = Arrays.copyOfRange(movesArray, 0, movesSize);
+		//TODO
+		//if (isCheck()) sb.append('+');
+		return sb.toString();
+	}
+	
+	public List<Move> moveList() {
+		return moveList == null ? moveList = new MoveList(codes) : moveList;
+	}
+	
+	public void forEach(BiConsumer<Move, MovePieces> action) {
+		for (int i = 0; i < codes.length; i++) {
+			int code = codes[i];
+			action.accept(codeMove(code), codePieces(code));
+		}
 	}
 
-	//TODO needs a better name
-	public List<Move> moves() {
-		return moves == null ? moves = Collections.unmodifiableList(Arrays.asList(movesArray)) : moves;
-	}
-	
-	public MoveList list() {
-		return moveList == null ? moveList = new MoveList(position, movesArray) : moveList;
-	}
-	
 	//TODO make efficient?
 	public List<Move> movesFrom(Square square) {
 		if (square == null) throw new IllegalArgumentException("null square");
-		return Arrays.stream(movesArray).filter(m -> m.from == square).sorted(moveDistComp).collect(Collectors.toList());
+		return moveStream().filter(m -> m.from == square).sorted(moveDistComp).collect(Collectors.toList());
 	}
-	
+
 	public SquareMap<List<Move>> movesByOriginSquare() {
-		SquareMap<List<Move>> map = Arrays.stream(movesArray).collect(Collectors.groupingBy(m -> m.from, PositionMoves::newMap, Collectors.toList()));
+		SquareMap<List<Move>> map = moveStream().collect(Collectors.groupingBy(m -> m.from, PositionMoves::newMap, Collectors.toList()));
 		//TODO how to combine these in one stream operation?
 		map.values().forEach( l -> l.sort(moveDistComp) );
 		return map;
 	}
 	
-	void record(Move move) {
-		if (movesArray.length != MAX_MOVES) throw new IllegalStateException();
-		movesArray[movesSize ++] = move;
-		if (movesSize == MAX_MOVES) throw new RuntimeException("MAX_MOVES met");
+	private Stream<Move> moveStream() {
+		return Arrays.stream(codes).mapToObj(c -> codeMove(c));
 	}
+	
+	private Move ambiguatingMove(Move move, MovePieces pieces) {
+		PieceType moved = pieces.moved;
+		Square to = move.to;
+		Square from = move.from;
+		for (int i = 0; i < codes.length; i++) {
+			int code = codes[i];
+			Move m = codeMove(code);
+			if (
+					m.to == to &&
+					m.from != from &&
+					codePieces(code).moved == moved
+					)
+				return m;
+		}
+		return null;
+	}
+	
+	private static class MovePopulator implements Consumer<Square> {
 
-	public static final class MoveList extends AbstractList<PositionMove> {
-		
-		private int size = 0;
-		final PositionMove[] array;
+		private static final int MAX_MOVES = 256;
 
-		MoveList(Position position, Move[] moves) {
-			int capacity = moves.length;
-			for (Move move : moves) {
-				if (move.isPromotion(position)) capacity += 3; 
+		private static ThreadLocal<int[]> tmpCodes = new ThreadLocal<int[]>() {
+			protected int[] initialValue() {
+				return new int[MAX_MOVES];
 			}
-			array = new PositionMove[capacity];
-			PositionMove.transform(position, moves, array);
+		};
+		
+		private final Position position;
+		private final Squares checkers;
+		private final Squares interpose;
+		
+		int count = 0;
+		int[] codes = tmpCodes.get();
+		
+		MovePopulator(Position position, Area area) {
+			Board board = position.board;
+			MoveConstraint constraint = position.constraint;
+			SquareMap<Move> checks = board.withColour(constraint.toMove).checks();
+			Squares checkers = checks.keySet();
+			Squares interpose = checks.size() == 1 ? checks.get(checkers.only()).intermediateSquares : Squares.empty();
+			Squares squares = area.getSquares().intersect(board.withColour(constraint.toMove).occupiedSquares());
+
+			this.position = position;
+			this.checkers = checkers;
+			this.interpose = interpose;
+
+			Square square = squares.only();
+			if (square == null) {
+				squares.forEach(this);
+			} else {
+				accept(square);
+			}
+
+		}
+
+		@Override
+		public void accept(Square s) {
+			count = Move.possibleMovesFrom(s).populateMoves(codes, count, position, checkers, interpose);
 		}
 		
-		//TODO theoretically, there could be more than one ambiguity
-		public PositionMove ambiguatingMove(PositionMove move) {
-			for (PositionMove candidate : array) {
-				if (
-						candidate.piece()   == move.piece() &&
-						candidate.move.to   == move.move.to &&
-						candidate.move.from != move.move.from
-						) {
-					return candidate;
-				}
-			}
-			return null;
+		int[] moves() {
+			return Arrays.copyOfRange(codes, 0, count);
+		}
+
+	}
+	
+	private static class MoveList extends AbstractList<Move> {
+		
+		private final int[] codes;
+		
+		MoveList(int[] codes) {
+			this.codes = codes;
+		}
+		
+		@Override
+		public Move get(int index) {
+			return codeMove(codes[index]);
+		}
+		
+		@Override
+		public int size() {
+			return codes.length;
+		}
+		
+		@Override
+		public boolean contains(Object o) {
+			return indexOf(o) != -1;
 		}
 		
 		@Override
 		public boolean isEmpty() {
-			return size != 0;
+			return codes.length == 0;
 		}
 		
 		@Override
-		public boolean add(PositionMove e) {
-			array[size++] = e;
-			return true;
-		}
-		
-		@Override
-		public PositionMove get(int index) {
-			return array[index];
-		}
-		@Override
-		public int size() {
-			return size;
-		}
-		
-		@Override
-		public void forEach(Consumer<? super PositionMove> action) {
-			for (PositionMove move : array) {
-				action.accept(move);
+		public void forEach(Consumer<? super Move> action) {
+			for (int code : codes) {
+				action.accept(codeMove(code));
 			}
+		}
+		
+		@Override
+		public int indexOf(Object o) {
+			if (!(o instanceof Move)) return -1;
+			Move move = (Move) o;
+			int ordinal = move.ordinal;
+			for (int i = 0; i < codes.length; i++) {
+				int code = codes[i];
+				if ((code & MOVE_MASK) == ordinal) return i;
+			}
+			return -1;
 		}
 
 	}

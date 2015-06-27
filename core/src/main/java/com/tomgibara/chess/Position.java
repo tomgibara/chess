@@ -80,11 +80,6 @@ public final class Position {
 		sequence.discard(index);
 	}
 	
-	public Position makeMove(PositionMove move) {
-		//?
-		(isLast() ? sequence : sequence.newContinuation()).addMove(move);
-	}
-
 	@Override
 	public int hashCode() {
 		return board.hashCode() + 0x0f70 * toMove.hashCode() + castlingRights.hashCode() + Objects.hashCode(enPassantFile) + 0x7f0000 * stalemateClock;
