@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -246,10 +245,6 @@ public final class Move implements Comparable<Move> {
 		return anySet(PROMOTION);
 	}
 	
-	public boolean isPromotion(Position position) {
-		return anySet(PROMOTION) && position.board.pieces.get(from).type == PieceType.PAWN;
-	}
-	
 	public boolean isPossibleFor(PieceType type) {
 //TODO analyze surprising impact on performance
 //		if (piece == null) throw new IllegalArgumentException("null piece");
@@ -456,9 +451,7 @@ public final class Move implements Comparable<Move> {
 			return reverse ? (ptr >> 6) & 0x3f : ptr & 0x3f;
 		}
 
-		int populateMoves(int[] moveCodes, int moveCount, Position position, Squares checkers, Squares interpose) {
-			Board board = position.board;
-			MoveConstraint constraint = position.constraint;
+		int populateMoves(int[] moveCodes, int moveCount, Board board, MoveConstraint constraint, Squares checkers, Squares interpose) {
 			SquareMap<Piece> pieces = board.pieces;
 			Piece piece = pieces.get(square);
 			Squares occupied = pieces.keySet();

@@ -38,10 +38,10 @@ public class PositionMoves {
 	private final int[] codes;
 	private MoveList moveList = null;
 
-	PositionMoves(Position position, Area area) {
+	PositionMoves(Position position, Board board, Area area) {
 		this.position = position;
 		this.area = area;
-		this.codes = new MovePopulator(position, area).moves();
+		this.codes = new MovePopulator(board, position.constraint, area).moves();
 	}
 	
 	public int moveCount() {
@@ -144,22 +144,23 @@ public class PositionMoves {
 			}
 		};
 		
-		private final Position position;
+		private final Board board;
+		private final MoveConstraint constraint;
 		private final Squares checkers;
 		private final Squares interpose;
 		
 		int count = 0;
 		int[] codes = tmpCodes.get();
 		
-		MovePopulator(Position position, Area area) {
-			Board board = position.board;
-			MoveConstraint constraint = position.constraint;
+		MovePopulator(Board board, MoveConstraint constraint, Area area) {
+			this.board = board;
+			this.constraint = constraint;
+
 			SquareMap<Move> checks = board.withColour(constraint.toMove).checks();
 			Squares checkers = checks.keySet();
 			Squares interpose = checks.size() == 1 ? checks.get(checkers.only()).intermediateSquares : Squares.empty();
 			Squares squares = area.getSquares().intersect(board.withColour(constraint.toMove).occupiedSquares());
 
-			this.position = position;
 			this.checkers = checkers;
 			this.interpose = interpose;
 
@@ -174,7 +175,7 @@ public class PositionMoves {
 
 		@Override
 		public void accept(Square s) {
-			count = Move.possibleMovesFrom(s).populateMoves(codes, count, position, checkers, interpose);
+			count = Move.possibleMovesFrom(s).populateMoves(codes, count, board, constraint, checkers, interpose);
 		}
 		
 		int[] moves() {

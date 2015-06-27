@@ -7,7 +7,7 @@ public final class Position {
 
 	public final Sequence sequence;
 	private final int index;
-	public final Board board;
+	private final Board board;
 	public final Colour toMove;
 	public final CastlingRights castlingRights;
 	public final File enPassantFile;
@@ -65,14 +65,14 @@ public final class Position {
 	public PositionMoves moves() {
 		checkIndex();
 		if (moves == null) {
-			moves = new PositionMoves(this, Area.entire());
+			moves = new PositionMoves(this, board, Area.entire());
 		}
 		return moves;
 	}
 	
 	public PositionMoves computeMoves(Area area) {
 		checkIndex();
-		return new PositionMoves(this, area);
+		return new PositionMoves(this, board, area);
 	}
 	
 	public void discard() {
