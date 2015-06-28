@@ -129,6 +129,11 @@ public class BoardTest extends TestCase {
 		assertFalse(moves2.contains(move("a4-b3")));
 	}
 	
+	public void testEnPassantCheckCapture() {
+		Position position = Notation.parseFENPosition("8/8/7p/5ppP/7K/8/7k/8 w - g6 0 1");
+		assertMovesAre("h5-g6", position.moves().moveList());
+	}
+	
 	public void testEnPassantCheckInterpose() {
 		Position safe = Notation.parseFENPosition("7k/8/5q1K/6pP/8/8/8/8 w - g6 0 1");
 		assertMovesAre("h5-g6", safe.moves().moveList());

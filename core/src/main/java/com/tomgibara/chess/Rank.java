@@ -39,6 +39,14 @@ public enum Rank {
 		return Math.abs( a.ordinal() - b.ordinal() );
 	}
 	
+	public static Rank enPassantCaptureRank(Colour toMove) {
+		return toMove.white ? Rank.RK_6 : Rank.RK_3;
+	}
+	
+	public static Rank enPassantMoveRank(Colour toMove) {
+		return toMove.white ? Rank.RK_5 : Rank.RK_4;
+	}
+	
 	public final char character;
 	private final String string;
 	private Rectangle rectangle;

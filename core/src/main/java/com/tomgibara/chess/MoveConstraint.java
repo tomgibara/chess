@@ -48,7 +48,7 @@ public final class MoveConstraint {
 	public MoveConstraint(Colour toMove, boolean mayCastleC, boolean mayCastleG, File enPassantFile) {
 		if (toMove == null) throw new IllegalArgumentException("null toMove");
 		this.toMove = toMove;
-		this.enPassantSqr = enPassantFile == null ? null : enPassantFile.intersect(toMove.white ? Rank.RK_6 : Rank.RK_3);
+		this.enPassantSqr = enPassantFile == null ? null : enPassantFile.intersect(Rank.enPassantCaptureRank(toMove));
 		castlingSquares = csqrs[ ordinal(toMove, mayCastleC, mayCastleG) ];
 	}
 

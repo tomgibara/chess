@@ -503,14 +503,37 @@ public final class Move implements Comparable<Move> {
 				// we can try to capture
 				Square c = checkers.only();
 				if (c != null) {
-					Move move = Move.between(square, c);
-					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
+					Move move;
+					Square ep = constraint.enPassantSqr;
+					boolean valid;
+					if (
+							ep != null &&
+							ep.file == c.file &&
+							pieces.get(c).type == PieceType.PAWN &&
+							enPassantPossible(piece, c)
+						)
+					{
+						move = Move.between(square, ep);
+						valid = true;
+					} else {
+						move = Move.between(square, c);
+						valid = move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares);
+					}
+					if (valid) {
 						moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
 					}
 				}
 			}
 			
 			return moveCount;
+		}
+		
+		private boolean enPassantPossible(Piece piece, Square target) {
+			return
+					piece.type == PieceType.PAWN &&
+					target.rank == square.rank &&
+					square.rank == Rank.enPassantMoveRank(piece.colour) &&
+					File.distance(square.file, target.file) == 1;
 		}
 
 		private boolean attacks(SquareMap<Piece> pieces, Squares occupied, Square vacated, Squares occupiedByOpposingColour) {
