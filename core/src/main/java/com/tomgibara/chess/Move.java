@@ -520,7 +520,10 @@ public final class Move implements Comparable<Move> {
 						valid = move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares);
 					}
 					if (valid) {
-						moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
+						Interposition pin = board.withColour(piece.colour).pinnedToKing().get(square);
+						if (pin == null || pin.move.from == c) {
+							moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
+						}
 					}
 				}
 			}

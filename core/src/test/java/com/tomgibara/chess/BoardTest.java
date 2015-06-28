@@ -18,6 +18,7 @@ import static com.tomgibara.chess.Square.at;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -142,6 +143,12 @@ public class BoardTest extends TestCase {
 		
 	}
 	
+	public void testPinnedMate() {
+		Position mate = Notation.parseFENPosition("8/7q/8/4r1NK/8/7k/8/8 w - - 0 1");
+		assertMovesAre("", mate.moves().moveList());
+		
+	}
+	
 	public void testCastling() {
 		Board board = Notation.parseFENBoard("4k3/8/8/q7/8/r3b3/3PP3/R3Kb1r");
 		Area area = board.squaresOccupiedBy(PieceType.KING.white()).asArea();
@@ -168,7 +175,7 @@ public class BoardTest extends TestCase {
 
 	private void assertMovesAre(String expected, Collection<Move> moves) {
 		if (expected.isEmpty()) {
-			assertTrue(moves.isEmpty());
+			assertEquals(Collections.emptySet(), new TreeSet<>(moves));
 		} else {
 			Set<Move> set = Arrays.stream(expected.split(",")).map(Move::move).collect(Collectors.toCollection(TreeSet::new));
 			assertEquals(set, new TreeSet<>(moves));
