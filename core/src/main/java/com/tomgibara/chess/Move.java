@@ -495,7 +495,8 @@ public final class Move implements Comparable<Move> {
 					if (
 							move.isPossibleFor(piece) &&
 							!occupied.intersects(move.intermediateSquares) &&
-							(piece.type != PieceType.PAWN || !move.isPawnCapture() || move.to == constraint.enPassantSqr) // extra check for en-passant
+							(piece.type != PieceType.PAWN || !move.isPawnCapture() || move.to == constraint.enPassantSqr) && // extra check for en-passant
+							board.withColour(piece.colour).pinnedToKing().get(square) == null // extra check for breaking pin
 							) {
 						moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
 					}

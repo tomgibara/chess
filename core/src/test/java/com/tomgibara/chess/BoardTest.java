@@ -140,7 +140,8 @@ public class BoardTest extends TestCase {
 		assertMovesAre("h5-g6", safe.moves().moveList());
 		Position mate = Notation.parseFENPosition("7k/8/5q1K/6pP/8/8/8/8 w - - 0 1");
 		assertMovesAre("", mate.moves().moveList());
-		
+		Position mate2 = Notation.parseFENPosition("7k/8/5q1K/6pP/7r/8/8/8 w - g6 0 1");
+		assertMovesAre("", mate2.moves().moveList());
 	}
 	
 	public void testPinnedMate() {
