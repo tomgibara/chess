@@ -170,13 +170,10 @@ public final class PositionMoves {
 			this.constraint = constraint;
 
 			SquareMap<Move> checks = board.withColour(constraint.toMove).checks();
-			Squares checkers = checks.keySet();
-			Squares interpose = checks.size() == 1 ? checks.get(checkers.only()).intermediateSquares : Squares.empty();
+			this.checkers = checks.keySet();
+			this.interpose = checks.size() == 1 ? checks.get(checkers.only()).intermediateSquares : Squares.empty();
+
 			Squares squares = area.getSquares().intersect(board.withColour(constraint.toMove).occupiedSquares());
-
-			this.checkers = checkers;
-			this.interpose = interpose;
-
 			Square square = squares.only();
 			if (square == null) {
 				squares.forEach(this);

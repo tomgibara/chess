@@ -13,7 +13,7 @@ public class TestRender {
 		//Board board = Notation.parseFENBoard("r1b1kb1r/pp1n1p1p/2p1p1pn/q3N3/2BP1B2/2N5/PPP2PPP/R2QK2R");
 		//Board board = Notation.parseFENBoard("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R");
 		BoardRenderer renderer = new BoardRenderer(800, false);
-		renderer.render(position.board);
+		renderer.render(position.pieces().newBoard());
 		renderer.render(position.moves());
 		ImageUtil.showImage("Result", renderer.getImage());
 	}

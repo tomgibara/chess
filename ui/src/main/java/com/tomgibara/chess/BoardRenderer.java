@@ -141,11 +141,11 @@ public class BoardRenderer {
 			
 			List<Move> list = entry.getValue();
 			MutableSquares visited = new MutableSquares();
+			Squares occupied = moves.position.pieces().keySet();
 			for (ListIterator<Move> i = list.listIterator(list.size()); i.hasPrevious();) {
 				Move move = i.previous();
 				if (visited.contains(move.to)) continue;
 				Arrow arrow = new Arrow(move, null);
-				Squares occupied = moves.position.board.pieces.keySet();
 				Color pieceColor = colour.white ? Color.WHITE : Color.BLACK;
 				Color contrastColor = colour.white ? Color.BLACK : Color.WHITE;
 				Paint fill;

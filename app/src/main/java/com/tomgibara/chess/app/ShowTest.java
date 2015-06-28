@@ -22,7 +22,7 @@ public class ShowTest {
 		Position position = Notation.parseFENPosition(args);
 
 		BoardRenderer renderer = new BoardRenderer(size, true);
-		renderer.render(position.board);
+		renderer.render(position.pieces().newBoard());
 		renderer.render(position.moves());
 		ImageUtil.showImage("Result", renderer.getImage());
 	}

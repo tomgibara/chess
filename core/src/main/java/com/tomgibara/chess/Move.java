@@ -492,7 +492,11 @@ public final class Move implements Comparable<Move> {
 				// we can try to interpose
 				for (Square i : interpose) {
 					Move move = Move.between(square, i);
-					if (move.isPossibleFor(piece) && !occupied.intersects(move.intermediateSquares)) {
+					if (
+							move.isPossibleFor(piece) &&
+							!occupied.intersects(move.intermediateSquares) &&
+							(piece.type != PieceType.PAWN || !move.isPawnCapture() || move.to == constraint.enPassantSqr) // extra check for en-passant
+							) {
 						moveCount = recordMove(moveCodes, moveCount, move, piece, pieces.get(move.to));
 					}
 				}

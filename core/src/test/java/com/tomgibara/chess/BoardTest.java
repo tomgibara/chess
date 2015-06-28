@@ -129,6 +129,14 @@ public class BoardTest extends TestCase {
 		assertFalse(moves2.contains(move("a4-b3")));
 	}
 	
+	public void testEnPassantCheckInterpose() {
+		Position safe = Notation.parseFENPosition("7k/8/5q1K/6pP/8/8/8/8 w - g6 0 1");
+		assertMovesAre("h5-g6", safe.moves().moveList());
+		Position mate = Notation.parseFENPosition("7k/8/5q1K/6pP/8/8/8/8 w - - 0 1");
+		assertMovesAre("", mate.moves().moveList());
+		
+	}
+	
 	public void testCastling() {
 		Board board = Notation.parseFENBoard("4k3/8/8/q7/8/r3b3/3PP3/R3Kb1r");
 		Area area = board.squaresOccupiedBy(PieceType.KING.white()).asArea();
