@@ -143,7 +143,7 @@ public class BoardTest extends TestCase {
 		assertTrue(moves.contains(move("e1-c1")));
 		assertFalse(moves.contains(move("e1-g1")));
 	}
-
+	
 	private void assertSquaresAre(String expected, Collection<Square> squares) {
 		if (expected.isEmpty()) {
 			assertTrue(squares.isEmpty());

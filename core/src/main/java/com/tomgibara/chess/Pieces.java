@@ -17,7 +17,8 @@ final public class Pieces extends SquareMap<Piece> {
 	}
 	
 	public Board newBoard() {
-		return new Board(this);
+		//public callers can only make immutable boards
+		return new Board(this.immutable());
 	}
 
 	public Pieces set(Square square, Piece piece) {
@@ -76,6 +77,10 @@ final public class Pieces extends SquareMap<Piece> {
 			}
 			break;
 		case PAWN:
+			// deal with en-passant
+			if (move.isPawnCapture() && pieces.captured == null) {
+				remove(move.enPassantSquare());
+			}
 			if (move.isPromotion()) {
 				put(move.to, pieces.promotion.coloured(colour));
 				return;
@@ -90,6 +95,9 @@ final public class Pieces extends SquareMap<Piece> {
 		PieceType moved = pieces.moved;
 		put(move.from, moved.coloured(colour));
 		if (pieces.captured == null) {
+			if (moved == PieceType.PAWN && move.isPawnCapture()) {
+				put(move.enPassantSquare(), PieceType.PAWN.coloured(colour.opposite()));
+			}
 			remove(move.to);
 		} else {
 			put(move.to, pieces.captured.coloured(colour.opposite()) );

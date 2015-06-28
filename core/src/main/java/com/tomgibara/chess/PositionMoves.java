@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 //TODO allow move sorting?
-public class PositionMoves {
+public final class PositionMoves {
 
 	private static final int MOVE_BITS = 12;
 	private static final int MOVE_MASK = (1 << 12) - 1;
@@ -29,8 +29,12 @@ public class PositionMoves {
 		return MovePieces.from(code >> MOVE_BITS);
 	}
 	
-	public static int code(Move move, MovePieces promotion) {
-		return (promotion.ordinal << 12) | move.ordinal;
+	public static int code(Move move, MovePieces pieces) {
+		return (pieces.ordinal << 12) | move.ordinal;
+	}
+	
+	public static boolean isCapture(Move move, MovePieces pieces) {
+		return pieces.moved == PieceType.PAWN ? move.isPawnCapture() : pieces.captured != null;
 	}
 
 	public final Position position;
@@ -62,9 +66,8 @@ public class PositionMoves {
 		MovePieces pieces = codePieces(code);
 		StringBuffer sb = new StringBuffer();
 		PieceType type = pieces.moved;
-		boolean capture = pieces.captured != null;
 		if (type == PieceType.PAWN) {
-			if (capture) sb.append(move.from.file).append('x');
+			if (move.isPawnCapture()) sb.append(move.from.file).append('x');
 			sb.append(move.to);
 			if (move.isPromotion()) sb.append('=').append(pieces.promotion.character);
 		} else {
@@ -81,7 +84,7 @@ public class PositionMoves {
 					sb.append(s1);
 				}
 			}
-			if (capture) sb.append('x');
+			if (pieces.captured != null) sb.append('x');
 			sb.append(move.to);
 		}
 		//TODO
@@ -111,6 +114,16 @@ public class PositionMoves {
 		//TODO how to combine these in one stream operation?
 		map.values().forEach( l -> l.sort(moveDistComp) );
 		return map;
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < codes.length; i++) {
+			if (i > 0) sb.append(", ");
+			sb.append(notation(i));
+		}
+		return sb.toString();
 	}
 	
 	private Stream<Move> moveStream() {

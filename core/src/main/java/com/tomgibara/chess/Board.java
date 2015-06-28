@@ -15,9 +15,8 @@ import java.util.Set;
 
 public final class Board {
 
-	private static final Board empty = new Board(new Pieces());
-	private static final Board initial = new Board(
-			new Pieces()
+	private static final Board empty = new Pieces().newBoard();
+	private static final Board initial = new Pieces()
 			.set(Rank.RK_8.asArea(),
 					BLACK_ROOK,
 					BLACK_KNIGHT,
@@ -39,8 +38,7 @@ public final class Board {
 					WHITE_BISHOP,
 					WHITE_KNIGHT,
 					WHITE_ROOK
-					)
-			);
+					).newBoard();
 	
 	public static Board empty() {
 		return empty;

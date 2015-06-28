@@ -290,6 +290,10 @@ public final class Move implements Comparable<Move> {
 		return reverse;
 	}
 	
+	public Square enPassantSquare() {
+		return Square.at(to.file, from.rank);
+	}
+	
 	public Move inducedRookMove() {
 		if (!isCastling()) return null;
 		Rank rank = to.rank;

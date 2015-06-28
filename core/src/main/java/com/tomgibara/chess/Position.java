@@ -61,6 +61,12 @@ public final class Position {
 			throw new NoSuchElementException();
 		}
 	}
+	
+	public Pieces pieces() {
+		checkIndex();
+		//TODO cache reference?
+		return board.pieces.immutable();
+	}
 
 	public PositionMoves moves() {
 		checkIndex();
