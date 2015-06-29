@@ -62,7 +62,7 @@ public class Notation {
 		} else {
 			String cstStr = parts[2];
 			if (cstStr.equals("-")) {
-				castlingRights = CastlingRights.BG_BC_WG_WC;
+				castlingRights = CastlingRights.___________;
 			} else {
 				if (CASTLE.matcher(cstStr).find()) throw new IllegalArgumentException("Invalid castle specifier");
 				castlingRights = CastlingRights.with(

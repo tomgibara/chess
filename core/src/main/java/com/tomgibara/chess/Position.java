@@ -57,7 +57,7 @@ public final class Position {
 			this.enPassantFile = pieces.moved == PieceType.PAWN && !move.intermediateSquares.isEmpty() ? move.from.file : null;
 			this.moveNumber = that.toMove.white ? that.moveNumber : that.moveNumber + 1;
 			//TODO increment stalemate clock
-			this.stalemateClock = that.stalemateClock;
+			this.stalemateClock = pieces.moved == PieceType.PAWN || pieces.captured != null ? 0 : that.stalemateClock + 1;
 			constraint = castlingRights.asMoveConstraint(toMove, enPassantFile);
 			// advance pieces so that new position gets the pieces in its state
 			board.pieces.make(that.toMove, move, pieces);
@@ -100,6 +100,11 @@ public final class Position {
 		activate();
 		return new PositionMoves(this, board, area);
 	}
+	
+	public Position makeMove(Move move) {
+		return moves().make(move);
+	}
+
 	
 	public void discard() {
 		if (discarded) return;

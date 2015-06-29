@@ -9,12 +9,11 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-//TODO allow move sorting?
 public final class PositionMoves {
 
-	private static final int MOVE_BITS = 12;
-	private static final int MOVE_MASK = (1 << 12) - 1;
-
+	private static final int PIECE_BITS = 6;
+	private static final int PIECE_MASK = (1 << PIECE_BITS) - 1;
+	
 	private static final Comparator<? super Move> moveDistComp = (m1, m2) -> m1.spannedSquares.size() - m2.spannedSquares.size();
 
 	private static SquareMap<List<Move>> newMap() {
@@ -22,15 +21,19 @@ public final class PositionMoves {
 	}
 	
 	static Move codeMove(int code) {
-		return Move.forOrdinal(code & MOVE_MASK);
+		return Move.forOrdinal(code >> PIECE_BITS);
 	}
 	
 	static MovePieces codePieces(int code) {
-		return MovePieces.from(code >> MOVE_BITS);
+		return MovePieces.from(code & PIECE_MASK);
 	}
 	
 	public static int code(Move move, MovePieces pieces) {
-		return (pieces.ordinal << 12) | move.ordinal;
+		return (move.ordinal << PIECE_BITS) | pieces.ordinal;
+	}
+	
+	public static int code(Move move) {
+		return move.ordinal << PIECE_BITS;
 	}
 	
 	public static boolean isCapture(Move move, MovePieces pieces) {
@@ -128,6 +131,18 @@ public final class PositionMoves {
 			sb.append(notation(i));
 		}
 		return sb.toString();
+	}
+	
+	Position make(Move move) {
+		int code = code(move);
+		int i = Arrays.binarySearch(codes, code);
+		if (i >= 0) return position.makeMove(code);
+		i = -1 - i;
+		if (i >= codes.length) throw new IllegalArgumentException("invalid move: " + move);
+		int candidate = codes[i++];
+		if ((candidate & ~PIECE_MASK) != code) throw new IllegalArgumentException("invalid move: " + move);
+		if (i >= codes.length || (codes[i] & ~PIECE_MASK) != code) return position.makeMove(candidate);
+		throw new IllegalArgumentException("ambiguous move: " + move);
 	}
 	
 	private Stream<Move> moveStream() {
@@ -240,7 +255,7 @@ public final class PositionMoves {
 			int ordinal = move.ordinal;
 			for (int i = 0; i < codes.length; i++) {
 				int code = codes[i];
-				if ((code & MOVE_MASK) == ordinal) return i;
+				if ((code >> PIECE_BITS) == ordinal) return i;
 			}
 			return -1;
 		}

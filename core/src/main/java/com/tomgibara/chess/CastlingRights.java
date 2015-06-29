@@ -83,7 +83,7 @@ public enum CastlingRights {
 		final int nextOrdinal;
 		switch (piece.type) {
 		case KING: {
-			nextOrdinal = piece.colour.white ? ordinal & BG_BC______.ordinal() : ______WG_WC.ordinal();
+			nextOrdinal = ordinal & (piece.colour.white ? BG_BC______.ordinal() : ______WG_WC.ordinal());
 			break;
 		}
 		case ROOK: {
