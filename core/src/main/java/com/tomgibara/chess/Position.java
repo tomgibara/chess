@@ -5,9 +5,11 @@ import java.util.Objects;
 
 public final class Position {
 
+	private static final int NO_CODE = Integer.MIN_VALUE;
+	
 	public final Sequence sequence;
+	final int code;
 	private final int index;
-	private final Board board;
 	public final Colour toMove;
 	public final CastlingRights castlingRights;
 	public final File enPassantFile;
@@ -15,15 +17,17 @@ public final class Position {
 	public final int stalemateClock; // reset on captures and pawn moves
 	private boolean discarded = false;
 
+	private final Board board;
 	//TODO derive as needed?
 	public final MoveConstraint constraint;
 	
 	private PositionMoves moves;
 	
-	Position(Sequence sequence, Board board, Colour toMove, CastlingRights castlingRights, File enPassantFile, int moveNumber, int stalemateClock) {
+	Position(Sequence sequence, Colour toMove, CastlingRights castlingRights, File enPassantFile, int moveNumber, int stalemateClock) {
 		this.sequence = sequence;
+		this.code = NO_CODE;
 		this.index = sequence.length();
-		this.board = board;
+		this.board = sequence.newBoard();
 		this.toMove = toMove;
 		this.castlingRights = castlingRights;
 		this.enPassantFile = enPassantFile;
@@ -32,16 +36,32 @@ public final class Position {
 		constraint = castlingRights.asMoveConstraint(toMove, enPassantFile);
 	}
 	
-	private Position(Sequence sequence, Position that) {
+	private Position(Sequence sequence, Position that, int code) {
 		this.sequence = sequence;
+		this.code = that.code;
 		this.index = sequence.length();
-		this.board = that.board;
-		this.toMove = that.toMove;
-		this.castlingRights = that.castlingRights;
-		this.enPassantFile = that.enPassantFile;
-		this.moveNumber = that.moveNumber;
-		this.stalemateClock = that.stalemateClock;
-		this.constraint = that.constraint;
+		this.board = sequence.newBoard();
+
+		if (code == NO_CODE) {
+			this.toMove = that.toMove;
+			this.castlingRights = that.castlingRights;
+			this.enPassantFile = that.enPassantFile;
+			this.moveNumber = that.moveNumber;
+			this.stalemateClock = that.stalemateClock;
+			this.constraint = that.constraint;
+		} else {
+			Move move = PositionMoves.codeMove(code);
+			MovePieces pieces = PositionMoves.codePieces(code);
+			this.toMove = that.toMove.opposite();
+			this.castlingRights = that.castlingRights.after(pieces.moved.coloured(that.toMove), move);
+			this.enPassantFile = pieces.moved == PieceType.PAWN && !move.intermediateSquares.isEmpty() ? move.from.file : null;
+			this.moveNumber = that.toMove.white ? that.moveNumber : that.moveNumber + 1;
+			//TODO increment stalemate clock
+			this.stalemateClock = that.stalemateClock;
+			constraint = castlingRights.asMoveConstraint(toMove, enPassantFile);
+			// advance pieces so that new position gets the pieces in its state
+			board.pieces.make(that.toMove, move, pieces);
+		}
 	}
 	
 	public Position previous() {
@@ -63,13 +83,13 @@ public final class Position {
 	}
 	
 	public Pieces pieces() {
-		checkIndex();
+		activate();
 		//TODO cache reference?
 		return board.pieces.immutable();
 	}
 
 	public PositionMoves moves() {
-		checkIndex();
+		activate();
 		if (moves == null) {
 			moves = new PositionMoves(this, board, Area.entire());
 		}
@@ -77,7 +97,7 @@ public final class Position {
 	}
 	
 	public PositionMoves computeMoves(Area area) {
-		checkIndex();
+		activate();
 		return new PositionMoves(this, board, area);
 	}
 	
@@ -107,27 +127,47 @@ public final class Position {
 	
 	//TODO toString using notation?
 
+	Position copy(Sequence owner, int code) {
+		activate();
+		return new Position(owner, this, code);
+	}
+	
 	Position copy(Sequence owner) {
-		checkIndex();
-		return new Position(sequence, this);
+		return copy(owner, NO_CODE);
+	}
+	
+	Position makeMove(int code) {
+		activate();
+		return sequence.makeMove(this, code);
+	}
+	
+	void apply(Pieces pieces) {
+		Move m = PositionMoves.codeMove(code);
+		MovePieces p = PositionMoves.codePieces(code);
+		pieces.make(toMove, m, p);
+	}
+	
+	void unapply(Pieces pieces) {
+		Move m = PositionMoves.codeMove(code);
+		MovePieces p = PositionMoves.codePieces(code);
+		pieces.takeBack(toMove, m, p);
 	}
 	
 	void markAsDiscarded() {
 		this.discarded = true;
 	}
 	
-	private void checkDiscarded() {
-		if (discarded) throw new IllegalStateException();
-	}
-	
-	private void checkIndex() {
-		//if (index != sequence.index()) throw new IllegalStateException("Attempt to access position " + index + " when sequence at index " + sequence.index());
+	void activate() {
 		if (discarded) throw new IllegalStateException();
 		sequence.toIndex(index);
 	}
 	
-	private boolean isLast() {
+	boolean isLast() {
 		return index + 1 == sequence.length();
 	}
 
+	private void checkDiscarded() {
+		if (discarded) throw new IllegalStateException();
+	}
+	
 }

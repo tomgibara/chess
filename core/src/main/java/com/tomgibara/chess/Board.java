@@ -58,17 +58,9 @@ public final class Board {
 	private Squares[] colourOccupiedSquares = null;
 	
 	Board(Pieces pieces) {
-		this.pieces = pieces.immutable();
+		this.pieces = pieces;
 	}
 	
-	public Position newPositionFor(Colour toMove) {
-		return new Sequence(this, toMove).position();
-	}
-
-	public Position newPositionFor(Colour toMove, CastlingRights castlingRights, File enPassantFile) {
-		return new Sequence(this, toMove, castlingRights, enPassantFile).position();
-	}
-
 	// info methods
 	
 	public ColouredBoardInfo withColour(Colour colour) {

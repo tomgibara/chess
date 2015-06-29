@@ -8,7 +8,7 @@ public class Notation {
 	private static final Pattern SLASH = Pattern.compile("/");
 	private static final Pattern CASTLE = Pattern.compile("[^kqKQ]");
 	
-	public static Board parseFENBoard(String str) {
+	public static Pieces parseFENPieces(String str) {
 		String[] split = SLASH.split(str);
 		if (split.length != 8) throw new IllegalArgumentException("Incorrect number of ranks: " + split.length);
 		Pieces ps = new Pieces();
@@ -32,7 +32,7 @@ public class Notation {
 			}
 			ps.set(rank.asArea(), pieces);
 		}
-		return ps.newBoard();
+		return ps;
 	}
 
 	public static Position parseFENPosition(String str) {
@@ -42,8 +42,8 @@ public class Notation {
 	public static Position parseFENPosition(String... parts) {
 		if (parts.length > 6) throw new IllegalArgumentException("Too many arguments");
 		
-		// board
-		Board board = parseFENBoard(parts[0]);
+		// pieces
+		Pieces pieces = parseFENPieces(parts[0]);
 		
 		// colour
 		final Colour colour;
@@ -106,7 +106,7 @@ public class Notation {
 		}
 		
 		// return
-		return new Sequence(board, colour, castlingRights, enPassantFile, moveNumber, stalemateClock).position();
+		return new Sequence(pieces, colour, castlingRights, enPassantFile, moveNumber, stalemateClock).position();
 	}
 	
 }

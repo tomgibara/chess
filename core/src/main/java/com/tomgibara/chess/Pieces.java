@@ -21,6 +21,14 @@ final public class Pieces extends SquareMap<Piece> {
 		return new Board(this.immutable());
 	}
 
+	public Position newPositionFor(Colour toMove) {
+		return new Sequence(this, toMove).position();
+	}
+
+	public Position newPositionFor(Colour toMove, CastlingRights castlingRights, File enPassantFile) {
+		return new Sequence(this, toMove, castlingRights, enPassantFile).position();
+	}
+
 	public Pieces set(Square square, Piece piece) {
 		if (square == null) throw new IllegalArgumentException("null square");
 		if (piece == null) {

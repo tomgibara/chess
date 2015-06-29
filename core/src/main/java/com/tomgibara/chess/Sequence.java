@@ -3,35 +3,45 @@ package com.tomgibara.chess;
 import java.util.ArrayList;
 import java.util.List;
 
-//TODO look to implement positional locking with mutable a mutable underlying board
 public class Sequence {
 
+	private final Pieces pieces;
 	private final List<Position> positions = new ArrayList<>();
 	private int index = 0;
 
+	// used to create a new continuation of a sequence at a specific position
 	private Sequence(Sequence that) {
+		this.pieces = that.pieces.mutableCopy();
 		positions.add( that.position().copy(this) );
 	}
-	
+
+	// used to create a new continuation of a sequence after a particular move
+	private Sequence(Position position, int code) {
+		//TODO assumes supplied position is 'active' in its sequence
+		this.pieces = position.sequence.pieces.mutableCopy();
+		positions.add( position.copy(this, code) );
+	}
+
 	public Sequence() {
-		this(Board.initial(), Colour.WHITE);
+		this(Board.initial().pieces, Colour.WHITE);
 	}
 
-	public Sequence(Board board, Colour toMove) {
-		this(board, toMove, CastlingRights.BG_BC_WG_WC, null);
+	Sequence(Pieces pieces, Colour toMove) {
+		this(pieces, toMove, CastlingRights.BG_BC_WG_WC, null);
 	}
 
-	public Sequence(Board board, Colour toMove, CastlingRights castlingRights, File enPassantFile) {
-		this(board, toMove, castlingRights, enPassantFile, 0, 0);
+	Sequence(Pieces pieces, Colour toMove, CastlingRights castlingRights, File enPassantFile) {
+		this(pieces, toMove, castlingRights, enPassantFile, 0, 0);
 	}
 
-	public Sequence(Board board, Colour toMove, CastlingRights castlingRights, File enPassantFile, int moveNumber, int stalemateClock) {
-		if (board == null) throw new IllegalArgumentException("null board");
+	Sequence(Pieces pieces, Colour toMove, CastlingRights castlingRights, File enPassantFile, int moveNumber, int stalemateClock) {
+		if (pieces == null) throw new IllegalArgumentException("null pieces");
 		if (toMove == null) throw new IllegalArgumentException("null toMove");
 		if (castlingRights == null) throw new IllegalArgumentException("null castlingRights");
 		if (moveNumber < 0) throw new IllegalArgumentException("negative moveNumber");
 		if (stalemateClock < 0) throw new IllegalArgumentException("negative stalemateClock");
-		positions.add( new Position(this, board, toMove, castlingRights, enPassantFile, moveNumber, stalemateClock) );
+		this.pieces = pieces.mutableCopy();
+		positions.add( new Position(this, toMove, castlingRights, enPassantFile, moveNumber, stalemateClock) );
 	}
 	
 	public int length() {
@@ -69,13 +79,43 @@ public class Sequence {
 		
 	}
 	
+	Board newBoard() {
+		return new Board(pieces);
+	}
+
+	// position assumed to be active
+	Position makeMove(Position position, int code) {
+		Position p;
+		if (position.isLast()) {
+			p = position.copy(this, code);
+			positions.add(p);
+			index ++; // since position copy will have advanced state of pieces
+		} else {
+			p = new Sequence(position, code).position();
+		}
+		return p;
+	}
+	
+	void addPosition(Position position) {
+		positions.add(position);
+		// index should already 'last'
+		index ++;
+	}
+	
 	int index() {
 		return index;
 	}
 	
-	void toIndex(int index) {
-		//TODO in future this will need to iterate through moves
-		this.index = index;
+	void toIndex(int toIndex) {
+		if (index == toIndex) return;
+
+		while (index > toIndex) { // work backwards
+			positions.get(index--).unapply(pieces);
+		}
+
+		while (index < toIndex) { // work forwards
+			positions.get(++index).apply(pieces);
+		}
 	}
 
 	void discard(int fromIndex) {

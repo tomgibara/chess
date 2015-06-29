@@ -32,14 +32,14 @@ public class PiecesTest extends TestCase {
 	}
 
 	private void testAllTakeBacks(String fen) {
-		Board board = Notation.parseFENBoard(fen);
+		Board board = Notation.parseFENPieces(fen).newBoard();
 		testAllTakeBacks(board, WHITE);
 		testAllTakeBacks(board, BLACK);
 	}
 
 	private void testAllTakeBacks(Board board, Colour colour) {
 		if (board.withColour(colour.opposite()).checks().isEmpty()) {
-			testAllTakeBacks( board.newPositionFor(colour) );
+			testAllTakeBacks( board.pieces.newPositionFor(colour) );
 		}
 	}
 	

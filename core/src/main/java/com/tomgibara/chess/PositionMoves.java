@@ -21,11 +21,11 @@ public final class PositionMoves {
 		return new SquareMap<List<Move>>(new List[64], 0);
 	}
 	
-	private static Move codeMove(int code) {
+	static Move codeMove(int code) {
 		return Move.forOrdinal(code & MOVE_MASK);
 	}
 	
-	private static MovePieces codePieces(int code) {
+	static MovePieces codePieces(int code) {
 		return MovePieces.from(code >> MOVE_BITS);
 	}
 	
@@ -90,6 +90,10 @@ public final class PositionMoves {
 		//TODO
 		//if (isCheck()) sb.append('+');
 		return sb.toString();
+	}
+	
+	public Position make(int index) {
+		return position.makeMove(codes[index]);
 	}
 	
 	public List<Move> moveList() {
