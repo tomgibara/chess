@@ -1,12 +1,12 @@
 package com.tomgibara.chess;
 
+import static com.tomgibara.chess.PositionMoves.NO_CODE;
+
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
 public final class Position {
 
-	private static final int NO_CODE = Integer.MIN_VALUE;
-	
 	public final Sequence sequence;
 	final int code;
 	private final int index;
@@ -38,7 +38,7 @@ public final class Position {
 	
 	private Position(Sequence sequence, Position that, int code) {
 		this.sequence = sequence;
-		this.code = that.code;
+		this.code = code;
 		this.index = sequence.length();
 		this.board = sequence.newBoard();
 
@@ -102,6 +102,12 @@ public final class Position {
 	}
 	
 	public Position makeMove(Move move) {
+		if (move == null) throw new IllegalArgumentException("null move");
+		return moves().make(move);
+	}
+	
+	public Position makeMove(String move) {
+		if (move == null) throw new IllegalArgumentException("null move");
 		return moves().make(move);
 	}
 
@@ -149,13 +155,13 @@ public final class Position {
 	void apply(Pieces pieces) {
 		Move m = PositionMoves.codeMove(code);
 		MovePieces p = PositionMoves.codePieces(code);
-		pieces.make(toMove, m, p);
+		pieces.make(toMove.opposite(), m, p);
 	}
 	
 	void unapply(Pieces pieces) {
 		Move m = PositionMoves.codeMove(code);
 		MovePieces p = PositionMoves.codePieces(code);
-		pieces.takeBack(toMove, m, p);
+		pieces.takeBack(toMove.opposite(), m, p);
 	}
 	
 	void markAsDiscarded() {

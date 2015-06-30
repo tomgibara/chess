@@ -2,6 +2,7 @@ package com.tomgibara.chess;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class Sequence {
 
@@ -76,6 +77,18 @@ public class Sequence {
 		int size = positions.size();
 		if (length == size) return;
 		if (length > size) throw new IllegalArgumentException();
+		discard(length);
+	}
+	
+	public void forEach(Consumer<Position> action) {
+		toIndex(0);
+		action.accept(positions.get(0));
+		int limit = length() - 1;
+		while (index < limit) {
+			Position p = positions.get(++index);
+			p.apply(pieces);
+			action.accept(p);
+		}
 		
 	}
 	

@@ -2,12 +2,12 @@ package com.tomgibara.chess;
 
 public enum PieceType {
 
-	PAWN('P'),
-	KNIGHT('N'),
-	BISHOP('B'),
-	ROOK('R'),
-	QUEEN('Q'),
-	KING('K');
+	PAWN('P', false),
+	KNIGHT('N', true),
+	BISHOP('B', true),
+	ROOK('R', true),
+	QUEEN('Q', true),
+	KING('K', false);
 
 	private static final PieceType[] values = values();
 	
@@ -35,9 +35,11 @@ public enum PieceType {
 	}
 	
 	public final char character;
+	public final boolean promotion;
 	
-	private PieceType(char c) {
+	private PieceType(char c, boolean p) {
 		character = c;
+		promotion = p;
 	}
 	
 	public Piece white() {

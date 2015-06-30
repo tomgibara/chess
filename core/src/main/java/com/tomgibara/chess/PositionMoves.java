@@ -1,5 +1,7 @@
 package com.tomgibara.chess;
 
+import static com.tomgibara.chess.Square.at;
+
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -11,11 +13,21 @@ import java.util.stream.Stream;
 
 public final class PositionMoves {
 
+	static final int NO_CODE = -1;
+	private static final int AMBIGUOUS_CODE = -2;
+
+	private static final int MAX_MOVES = 256;
 	private static final int PIECE_BITS = 6;
 	private static final int PIECE_MASK = (1 << PIECE_BITS) - 1;
 	
 	private static final Comparator<? super Move> moveDistComp = (m1, m2) -> m1.spannedSquares.size() - m2.spannedSquares.size();
 
+	private static ThreadLocal<int[]> tmpCodes = new ThreadLocal<int[]>() {
+		protected int[] initialValue() {
+			return new int[MAX_MOVES];
+		}
+	};
+	
 	private static SquareMap<List<Move>> newMap() {
 		return new SquareMap<List<Move>>(new List[64], 0);
 	}
@@ -134,17 +146,19 @@ public final class PositionMoves {
 	}
 	
 	Position make(Move move) {
-		int code = code(move);
-		int i = Arrays.binarySearch(codes, code);
-		if (i >= 0) return position.makeMove(code);
-		i = -1 - i;
-		if (i >= codes.length) throw new IllegalArgumentException("invalid move: " + move);
-		int candidate = codes[i++];
-		if ((candidate & ~PIECE_MASK) != code) throw new IllegalArgumentException("invalid move: " + move);
-		if (i >= codes.length || (codes[i] & ~PIECE_MASK) != code) return position.makeMove(candidate);
-		throw new IllegalArgumentException("ambiguous move: " + move);
+		return makeChecked( codeMatching(move) );
 	}
 	
+	Position make(String move) {
+		return makeChecked( codeMatching(move.trim()) );
+	}
+
+	Position makeChecked(int code) {
+		if (code == NO_CODE) throw new IllegalArgumentException("not a legal move");
+		if (code == AMBIGUOUS_CODE) throw new IllegalArgumentException("ambiguous move");
+		return position.makeMove(code);
+	}
+
 	private Stream<Move> moveStream() {
 		return Arrays.stream(codes).mapToObj(c -> codeMove(c));
 	}
@@ -166,16 +180,180 @@ public final class PositionMoves {
 		return null;
 	}
 	
+	int codeMatching(Move move) {
+		int code = code(move);
+		int i = Arrays.binarySearch(codes, code);
+		if (i >= 0) return code;
+		i = -1 - i;
+		if (i >= codes.length) return NO_CODE;
+		int candidate = codes[i++];
+		if ((candidate & ~PIECE_MASK) != code) return NO_CODE;
+		if (i >= codes.length || (codes[i] & ~PIECE_MASK) != code) return candidate;
+		return AMBIGUOUS_CODE;
+	}
+	
+	private int[] codesMatching(PieceType moved, Square to, PieceType promotion) {
+		int[] tmp = tmpCodes.get();
+		int count = 0;
+		for (int i = 0; i < codes.length; i++) {
+			int code = codes[i];
+			if (codeMove(code).to != to) continue;
+			MovePieces pieces = codePieces(code);
+			if (pieces.moved != moved) continue;
+			if (pieces.promotion != promotion) continue;
+			tmp[count++] = code;
+		}
+		return Arrays.copyOf(tmp, count);
+	}
+	
+	int codeMatching(String move) {
+		int len = move.length();
+		boolean check;
+		boolean mate;
+		if (move.endsWith("#")) {
+			check = true;
+			mate = true;
+			len -= 1;
+		} else if (move.endsWith("++")) {
+			check = true;
+			mate = true;
+			len -= 2;
+		} else if (move.endsWith("+")) {
+			check = true;
+			mate = false;
+			len -= 1;
+		} else {
+			check = false;
+			mate = false;
+		}
+		// this is what we're searching for...
+		final int code;
+		if ((move.startsWith("0-0") || move.startsWith("O-O")) && len == 3) {
+			// castle king side
+			Rank rank = Rank.castleRank(position.toMove);
+			Move m = Move.between(at(File.FL_E, rank), at(File.FL_G, rank));
+			code = codeMatching(m);
+		} else if ((move.startsWith("0-0-0") || move.startsWith("O-O-O")) && len == 5) {
+			// castle queen side
+			Rank rank = Rank.castleRank(position.toMove);
+			Move m = Move.between(at(File.FL_E, rank), at(File.FL_C, rank));
+			code = codeMatching(m);
+		} else {
+			if (len < 2) throw new IllegalArgumentException();
+			// check for promotion
+			PieceType promo;
+			if (move.charAt(len - 2) == '=') {
+				char pc = move.charAt(len - 1);
+				promo = PieceType.valueOf(pc);
+				//TODO actually an optional check - move won't be found anyway
+				if (!promo.promotion) throw new IllegalArgumentException("invalid promotion");
+				len -= 2;
+			} else {
+				promo = null;
+			}
+			// target square
+			if (len < 2) throw new IllegalArgumentException();
+			Square to = at( move.substring(len - 2, len) ); //TODO could avoid string creation
+			len -= 2;
+			// capture
+			boolean capture;
+			File f;
+			Rank r;
+			int[] matches;
+			if (len == 0) {
+				// pawn move
+				capture = false;
+				f = null;
+				r = null;
+				matches = codesMatching(PieceType.PAWN, to, promo);
+			} else {
+				capture = move.charAt(len - 1) == 'x';
+				if (capture) {
+					len -= 1;
+					if (len == 0) throw new IllegalArgumentException("capture without origin");
+				}
+				// origin given
+				char c = move.charAt(0);
+				if (Character.isUpperCase(c)) {
+					// piece move or capture
+					PieceType moved = PieceType.valueOf(c);
+					//TODO - again optional check - this will never match a move
+					if (promo != null) throw new IllegalArgumentException("non-pawn promotion");
+					// specifier
+					switch (len) {
+					case 1 : {
+						f = null;
+						r = null;
+						break;
+					}
+					case 2 : {
+						char k = move.charAt(1);
+						if (Character.isDigit(k)) {
+							f = null;
+							r = Rank.valueOf(k);
+						} else {
+							f = File.valueOf(k);
+							r = null;
+						}
+						break;
+					}
+					case 3 : {
+						f = File.valueOf(move.charAt(1));
+						r = Rank.valueOf(move.charAt(2));
+					}
+					default: throw new IllegalArgumentException("invalid piece specifier");
+					}
+					// matches
+					matches = codesMatching(moved, to, null);
+				} else {
+					// pawn move or capture
+					if (len != 1) throw new IllegalArgumentException("invalid pawn specifier");
+					f = File.valueOf(c);
+					r = null;
+					matches = codesMatching(PieceType.PAWN, to, promo);
+				}
+			}
+			// matching
+			switch (matches.length) {
+			case 0 :
+				code = NO_CODE;
+				break;
+			case 1 : {
+				int match = matches[0];
+				Square s = codeMove(match).from;
+				if (f != null && s.file != f || r != null && s.rank != r) {
+					code = NO_CODE;
+				} else {
+					code = match;
+				}
+				break;
+			}
+			default:
+				int tmp = NO_CODE;
+				for(int match : matches) {
+					Square s = codeMove(match).from;
+					if (f != null && s.file != f || r != null && s.rank != r) continue;
+					if (tmp != NO_CODE) {
+						tmp = AMBIGUOUS_CODE;
+						break;
+					} else {
+						tmp = match;
+					}
+				}
+				code = tmp;
+			}
+			boolean cp = isCapture(codeMove(code), codePieces(code));
+			if (cp && !capture) throw new IllegalArgumentException("move is a capture");
+			if (!cp && capture) throw new IllegalArgumentException("move is not a capture");
+		}
+		//TODO verify check & mate
+		if (code == NO_CODE) throw new IllegalArgumentException("not a legal move");
+		if (code == AMBIGUOUS_CODE) throw new IllegalArgumentException("ambiguous move");
+		return code;
+	}
+	
 	private static class MovePopulator implements Consumer<Square> {
 
-		private static final int MAX_MOVES = 256;
-
-		private static ThreadLocal<int[]> tmpCodes = new ThreadLocal<int[]>() {
-			protected int[] initialValue() {
-				return new int[MAX_MOVES];
-			}
-		};
-		
 		private final Board board;
 		private final MoveConstraint constraint;
 		private final Squares checkers;

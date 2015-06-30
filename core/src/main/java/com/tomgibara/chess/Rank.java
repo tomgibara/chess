@@ -47,6 +47,10 @@ public enum Rank {
 		return toMove.white ? Rank.RK_5 : Rank.RK_4;
 	}
 	
+	public static Rank castleRank(Colour toMove) {
+		return toMove.white ? Rank.RK_1 : Rank.RK_8;
+	}
+	
 	public final char character;
 	private final String string;
 	private Rectangle rectangle;

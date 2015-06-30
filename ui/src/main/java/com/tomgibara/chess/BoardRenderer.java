@@ -67,9 +67,14 @@ public class BoardRenderer {
 	public BufferedImage getImage() {
 		return image;
 	}
-	
+
+	//TODO eliminate
 	public void render(Board board) {
 		if (board == null) throw new IllegalArgumentException("null board");
+		render(board.pieces);
+	}
+
+	public void render(Pieces pieces) {
 //		Line2D.Double line = new Line2D.Double();
 //		g.setStroke(STROKE);
 		g.setColor(Color.BLACK);
@@ -77,7 +82,7 @@ public class BoardRenderer {
 			for (int file = 0; file < 8; file++) {
 				Square sqr = Square.at(file, rank);
 				String str;
-				Piece piece = board.pieces.get(sqr);
+				Piece piece = pieces.get(sqr);
 				if (piece == null) {
 					str = sqr.light ? " " : "+";
 				} else if (sqr.light) {
@@ -129,45 +134,10 @@ public class BoardRenderer {
 	}
 
 	public void render(PositionMoves moves) {
-		Colour colour = moves.position.toMove;
-		SquareMap<List<Move>> map = moves.movesByOriginSquare();
-		g.setStroke(ARROW_STROKE);
-		//fill = translucent(fill, 0.75f);
-		for (Entry<Square,List<Move>> entry : map.entrySet()) {
-//			MutableSquares visited = new MutableSquares();
-//			for (Move move : entry.getValue()) {
-//				Squares previous = move.intermediateSquares.intersect(visited);
-//				Shape arrow = arrow(move, previous);
-			
-			List<Move> list = entry.getValue();
-			MutableSquares visited = new MutableSquares();
-			Squares occupied = moves.position.pieces().keySet();
-			for (ListIterator<Move> i = list.listIterator(list.size()); i.hasPrevious();) {
-				Move move = i.previous();
-				if (visited.contains(move.to)) continue;
-				Arrow arrow = new Arrow(move, null);
-				Color pieceColor = colour.white ? Color.WHITE : Color.BLACK;
-				Color contrastColor = colour.white ? Color.BLACK : Color.WHITE;
-				Paint fill;
-				Paint stroke;
-				if (occupied.contains(move.to)) {
-					fill = new GradientPaint(arrow.base, pieceColor, arrow.point, Color.RED);
-					stroke = contrastColor;
-				} else {
-					fill = pieceColor;
-					stroke = contrastColor;
-				}
-				if (fill != null) {
-					g.setPaint(fill);
-					g.fill(arrow.shape);
-				}
-				if (stroke != null) {
-					g.setPaint(stroke);
-					g.draw(arrow.shape);
-				}
-				visited.addAll(move.intermediateSquares);
-			}
-		}
+		new MoveRenderer(moves).render();
+	}
+	
+	public void render(Sequence sequence) {
 	}
 	
 	private static Color translucent(Color c, float alpha) {
@@ -241,6 +211,67 @@ public class BoardRenderer {
 		tr.scale(s / length, s / length);
 		tr.rotate(x, y);
 		return tr;
+	}
+
+	private class MoveRenderer {
+
+		private final PositionMoves moves;
+		private final Colour colour;
+		private final SquareMap<List<Move>> map;
+		private final Squares occupied;
+		
+		MoveRenderer(PositionMoves moves) {
+			if (moves == null) throw new IllegalArgumentException("null moves");
+			this.moves = moves;
+			colour = moves.position.toMove;
+			map = moves.movesByOriginSquare();
+			occupied = moves.position.pieces().keySet();
+			g.setStroke(ARROW_STROKE);
+		}
+		
+		void render() {
+			for (Entry<Square,List<Move>> entry : map.entrySet()) {
+				render( entry.getValue() );
+			}
+		}
+
+		void render(List<Move> list) {
+			MutableSquares visited = new MutableSquares();
+			for (ListIterator<Move> i = list.listIterator(list.size()); i.hasPrevious();) {
+				Move move = i.previous();
+				render(move, visited);
+			}
+		}
+
+		private void render(Move move) {
+			render(move, new MutableSquares());
+		}
+
+		private void render(Move move, MutableSquares visited) {
+			if (visited.contains(move.to)) return;
+			Arrow arrow = new Arrow(move, null);
+			Color pieceColor = colour.white ? Color.WHITE : Color.BLACK;
+			Color contrastColor = colour.white ? Color.BLACK : Color.WHITE;
+			Paint fill;
+			Paint stroke;
+			if (occupied.contains(move.to)) {
+				fill = new GradientPaint(arrow.base, pieceColor, arrow.point, Color.RED);
+				stroke = contrastColor;
+			} else {
+				fill = pieceColor;
+				stroke = contrastColor;
+			}
+			if (fill != null) {
+				g.setPaint(fill);
+				g.fill(arrow.shape);
+			}
+			if (stroke != null) {
+				g.setPaint(stroke);
+				g.draw(arrow.shape);
+			}
+			visited.addAll(move.intermediateSquares);
+		}
+
 	}
 	
 	private static class Arrow {
