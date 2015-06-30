@@ -10,6 +10,8 @@ import java.awt.Paint;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -36,6 +38,7 @@ public class BoardRenderer {
 	private static final BasicStroke ARROW_STROKE = new BasicStroke(0.005f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
 	private static final Font CHESS_FONT = loadFont("Alpha.ttf");
 	private static final Font COORD_FONT = loadFont("Lora-Regular.ttf").deriveFont((float) (BOARD_INSET * 0.6));
+	private static final Font ANN_FONT = loadFont("FiraMono-Bold.ttf").deriveFont((float) (BOARD_INSET * 0.5));
 	
 	private final int size;
 	private final double scale;
@@ -59,7 +62,6 @@ public class BoardRenderer {
 			renderCoords();
 		}
 		reset();
-		g.setFont(CHESS_FONT);
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 	}
@@ -77,6 +79,7 @@ public class BoardRenderer {
 	public void render(Pieces pieces) {
 //		Line2D.Double line = new Line2D.Double();
 //		g.setStroke(STROKE);
+		g.setFont(CHESS_FONT);
 		g.setColor(Color.BLACK);
 		for (int rank = 0; rank < 8; rank++) {
 			for (int file = 0; file < 8; file++) {
@@ -138,6 +141,16 @@ public class BoardRenderer {
 	}
 	
 	public void render(Sequence sequence) {
+		sequence.forEach( p -> new MoveRenderer(p.previous().moves()).render(p.previousMove(), Integer.toString(p.moveNumber)), 1, sequence.length());
+	}
+	
+	public void render(Sequence sequence, Colour colour) {
+		sequence.forEach( p -> {
+			Position previous = p.previous();
+			if (previous.toMove == colour) {
+				new MoveRenderer(previous).render(p.previousMove(), Integer.toString(p.moveNumber));
+			}
+		}, 1, sequence.length());
 	}
 	
 	private static Color translucent(Color c, float alpha) {
@@ -219,7 +232,12 @@ public class BoardRenderer {
 		private final Colour colour;
 		private final SquareMap<List<Move>> map;
 		private final Squares occupied;
-		
+
+		//TODO decide on best constructor
+		MoveRenderer(Position position) {
+			this(position.moves());
+		}
+
 		MoveRenderer(PositionMoves moves) {
 			if (moves == null) throw new IllegalArgumentException("null moves");
 			this.moves = moves;
@@ -227,6 +245,7 @@ public class BoardRenderer {
 			map = moves.movesByOriginSquare();
 			occupied = moves.position.pieces().keySet();
 			g.setStroke(ARROW_STROKE);
+			g.setFont(ANN_FONT);
 		}
 		
 		void render() {
@@ -239,21 +258,22 @@ public class BoardRenderer {
 			MutableSquares visited = new MutableSquares();
 			for (ListIterator<Move> i = list.listIterator(list.size()); i.hasPrevious();) {
 				Move move = i.previous();
-				render(move, visited);
+				render(move, null, visited);
 			}
 		}
 
-		private void render(Move move) {
-			render(move, new MutableSquares());
+		private void render(Move move, String ann) {
+			if (move != null) render(move, ann, new MutableSquares());
 		}
 
-		private void render(Move move, MutableSquares visited) {
+		private void render(Move move, String ann, MutableSquares visited) {
 			if (visited.contains(move.to)) return;
 			Arrow arrow = new Arrow(move, null);
 			Color pieceColor = colour.white ? Color.WHITE : Color.BLACK;
 			Color contrastColor = colour.white ? Color.BLACK : Color.WHITE;
 			Paint fill;
 			Paint stroke;
+			//TODO not good enough - could be enpasant
 			if (occupied.contains(move.to)) {
 				fill = new GradientPaint(arrow.base, pieceColor, arrow.point, Color.RED);
 				stroke = contrastColor;
@@ -261,17 +281,26 @@ public class BoardRenderer {
 				fill = pieceColor;
 				stroke = contrastColor;
 			}
+			Shape shape = ann == null ? arrow.shape : arrow.shapeWithAnn;
 			if (fill != null) {
 				g.setPaint(fill);
-				g.fill(arrow.shape);
+				g.fill(shape);
 			}
 			if (stroke != null) {
 				g.setPaint(stroke);
-				g.draw(arrow.shape);
+				g.draw(shape);
+			}
+			if (ann != null) {
+				g.setColor(contrastColor);
+				g.drawString(ann, (float) (arrow.ann.x - 0.015), (float) (arrow.ann.y + 0.018));
 			}
 			visited.addAll(move.intermediateSquares);
 		}
 
+	}
+	
+	private static Ellipse2D.Double circle(double cx, double cy, double r) {
+		return new Ellipse2D.Double(cx - r, cy - r, r * 2, r * 2);
 	}
 	
 	private static class Arrow {
@@ -279,6 +308,8 @@ public class BoardRenderer {
 		final Point2D.Double base;
 		final Point2D.Double point;
 		final Shape shape;
+		final Point2D.Double ann;
+		final Shape shapeWithAnn;
 
 		Arrow(Move move, Squares previous) {
 			base = center(move.from);
@@ -309,7 +340,15 @@ public class BoardRenderer {
 				path.lineTo( except + 0.50                , -0.05 - 0.02 * except );
 				path.closePath();
 //			}
-			shape = transform(path, length, base, point);
+
+			AffineTransform trans = transFrom(length, base, point);
+			shape = trans.createTransformedShape(path);
+			ann = new Point2D.Double();
+			trans.transform(new Point2D.Double(except + 0.50, 0), ann);
+			Shape circle = circle(ann.x, ann.y, 0.03);
+			Area area = new Area(shape);
+			area.add(new Area(circle));
+			shapeWithAnn = area;
 		}
 		
 	}

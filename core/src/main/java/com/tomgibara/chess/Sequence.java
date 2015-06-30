@@ -81,17 +81,16 @@ public class Sequence {
 	}
 	
 	public void forEach(Consumer<Position> action) {
-		toIndex(0);
-		action.accept(positions.get(0));
-		int limit = length() - 1;
-		while (index < limit) {
-			Position p = positions.get(++index);
-			p.apply(pieces);
-			action.accept(p);
-		}
-		
+		forEachImpl(action, 0, length());
 	}
 	
+	public void forEach(Consumer<Position> action, int fromIndex, int toIndex) {
+		if (fromIndex < 0) throw new IllegalArgumentException("negative fromIndex");
+		if (toIndex > length()) throw new IllegalArgumentException("toIndex exceeds length");
+		if (fromIndex > toIndex) throw new IllegalArgumentException("fromIndex exceeds toIndex");
+		if (toIndex != fromIndex) forEachImpl(action, fromIndex, toIndex);
+	}
+
 	Board newBoard() {
 		return new Board(pieces);
 	}
@@ -143,4 +142,10 @@ public class Sequence {
 		}
 	}
 
+	private void forEachImpl(Consumer<Position> action, int fromIndex, int toIndex) {
+		for (int i = fromIndex; i < toIndex; i++) {
+			action.accept(positions.get(i));
+		}
+	}
+	
 }

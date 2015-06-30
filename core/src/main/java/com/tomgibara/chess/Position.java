@@ -55,7 +55,7 @@ public final class Position {
 			this.toMove = that.toMove.opposite();
 			this.castlingRights = that.castlingRights.after(pieces.moved.coloured(that.toMove), move);
 			this.enPassantFile = pieces.moved == PieceType.PAWN && !move.intermediateSquares.isEmpty() ? move.from.file : null;
-			this.moveNumber = that.toMove.white ? that.moveNumber : that.moveNumber + 1;
+			this.moveNumber = that.toMove.white ? that.moveNumber + 1 : that.moveNumber;
 			//TODO increment stalemate clock
 			this.stalemateClock = pieces.moved == PieceType.PAWN || pieces.captured != null ? 0 : that.stalemateClock + 1;
 			constraint = castlingRights.asMoveConstraint(toMove, enPassantFile);
@@ -80,6 +80,14 @@ public final class Position {
 		} catch (IllegalArgumentException e) {
 			throw new NoSuchElementException();
 		}
+	}
+	
+	public Move previousMove() {
+		return code == NO_CODE ? null : PositionMoves.codeMove(code);
+	}
+	
+	public MovePieces previousMovePieces() {
+		return code == NO_CODE ? null : PositionMoves.codePieces(code);
 	}
 	
 	public Pieces pieces() {

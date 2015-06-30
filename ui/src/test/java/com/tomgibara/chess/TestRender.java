@@ -5,6 +5,27 @@ import com.tomgibara.graphics.util.ImageUtil;
 public class TestRender {
 
 	public static void main(String[] args) {
+		test2();
+	}
+
+	private static void test2() {
+		Position position = new Sequence().position()
+				.makeMove("e4")  .makeMove("e6")
+				.makeMove("d3")  .makeMove("d5")
+				.makeMove("Nd2") .makeMove("Nf6")
+				.makeMove("Ngf3").makeMove("c5")
+				.makeMove("g3")  .makeMove("Nc6")
+				.makeMove("Bg2") .makeMove("Be7")
+				.makeMove("O-O") .makeMove("O-O")
+				;
+
+		BoardRenderer renderer = new BoardRenderer(800, false);
+		renderer.render(position.pieces());
+		renderer.render(position.sequence);
+		ImageUtil.showImage("Result", renderer.getImage());
+	}
+	
+	private static void test1() {
 		Position position = Notation.parseFENPosition("8/3k2Q1/8/4qn2/8/3K4/8/8");
 		//Board board = Notation.parseFENBoard("8/3k2Q1/8/4qn2/8/3K4/8/8");
 		//Board board = Notation.parseFENBoard("8/8/8/2b5/1rq5/2k5/5P2/R3K2R");
