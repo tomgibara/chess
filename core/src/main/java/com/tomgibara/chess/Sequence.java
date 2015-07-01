@@ -1,26 +1,46 @@
 package com.tomgibara.chess;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class Sequence {
 
 	private final Pieces pieces;
-	private final List<Position> positions = new ArrayList<>();
+	private final List<Position> positions;
+	public final boolean mutable;
 	private int index = 0;
 
 	// used to create a new continuation of a sequence at a specific position
 	private Sequence(Sequence that) {
-		this.pieces = that.pieces.mutableCopy();
+		pieces = that.pieces.mutableCopy();
+		positions = new ArrayList<>();
 		positions.add( that.position().copy(this) );
+		mutable = true;
 	}
 
 	// used to create a new continuation of a sequence after a particular move
 	private Sequence(Position position, int code) {
 		//TODO assumes supplied position is 'active' in its sequence
-		this.pieces = position.sequence.pieces.mutableCopy();
+		pieces = position.sequence.pieces.mutableCopy();
+		positions = new ArrayList<>();
 		positions.add( position.copy(this, code) );
+		mutable = true;
+	}
+	
+	// used to create a copy of a sequence
+	private Sequence(Sequence that, boolean mutable) {
+		this.pieces = that.pieces.mutableCopy();
+		List<Position> positions;
+		if (mutable) {
+			Position[] array = new Position[ that.positions.size() ];
+			positions = Arrays.asList( that.positions.toArray(array) );
+		} else {
+			positions = new ArrayList<>(that.positions);
+		}
+		this.positions = positions;
+		this.mutable = mutable;
 	}
 
 	public Sequence() {
@@ -42,7 +62,9 @@ public class Sequence {
 		if (moveNumber < 0) throw new IllegalArgumentException("negative moveNumber");
 		if (stalemateClock < 0) throw new IllegalArgumentException("negative stalemateClock");
 		this.pieces = pieces.mutableCopy();
+		positions = new ArrayList<>();
 		positions.add( new Position(this, toMove, castlingRights, enPassantFile, moveNumber, stalemateClock) );
+		mutable = true;
 	}
 	
 	public int length() {
@@ -77,6 +99,7 @@ public class Sequence {
 		int size = positions.size();
 		if (length == size) return;
 		if (length > size) throw new IllegalArgumentException();
+		checkMutable();
 		discard(length);
 	}
 	
@@ -91,6 +114,14 @@ public class Sequence {
 		if (toIndex != fromIndex) forEachImpl(action, fromIndex, toIndex);
 	}
 
+	public Sequence immutable() {
+		return mutable ? new Sequence(this, false) : this;
+	}
+	
+	public Sequence mutableCopy() {
+		return new Sequence(this, true);
+	}
+	
 	Board newBoard() {
 		return new Board(pieces);
 	}
@@ -98,7 +129,7 @@ public class Sequence {
 	// position assumed to be active
 	Position makeMove(Position position, int code) {
 		Position p;
-		if (position.isLast()) {
+		if (mutable && position.isLast()) {
 			p = position.copy(this, code);
 			positions.add(p);
 			index ++; // since position copy will have advanced state of pieces
@@ -106,12 +137,6 @@ public class Sequence {
 			p = new Sequence(position, code).position();
 		}
 		return p;
-	}
-	
-	void addPosition(Position position) {
-		positions.add(position);
-		// index should already 'last'
-		index ++;
 	}
 	
 	int index() {
@@ -148,4 +173,8 @@ public class Sequence {
 		}
 	}
 	
+	private void checkMutable() {
+		if (!mutable) throw new IllegalStateException("immutable");
+	}
+
 }
