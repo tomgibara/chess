@@ -547,10 +547,12 @@ public final class Move implements Comparable<Move> {
 				Move move = moves[ptr(offset)];
 				if (!move.isPossible()) continue;
 				Piece piece = pieces.get(move.from);
-				if (
-						move.isPossibleFor(piece) &&
-						occupied.disjoint(move.intermediateSquares, vacated)
-				) return true;
+				if (!move.isPossibleFor(piece)) continue;
+				if (piece.type == PieceType.PAWN) {
+					if (move.isPawnCapture()) return true;
+				} else {
+					if (occupied.disjoint(move.intermediateSquares, vacated)) return true;
+				}
 			}
 			return false;
 		}
