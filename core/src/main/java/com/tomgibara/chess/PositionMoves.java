@@ -342,13 +342,13 @@ public final class PositionMoves {
 				}
 				code = tmp;
 			}
-			boolean cp = isCapture(codeMove(code), codePieces(code));
+			boolean cp = code != NO_CODE && code != AMBIGUOUS_CODE && isCapture(codeMove(code), codePieces(code));
 			if (cp && !capture) throw new IllegalArgumentException("move is a capture");
 			if (!cp && capture) throw new IllegalArgumentException("move is not a capture");
 		}
 		//TODO verify check & mate
-		if (code == NO_CODE) throw new IllegalArgumentException("not a legal move");
-		if (code == AMBIGUOUS_CODE) throw new IllegalArgumentException("ambiguous move");
+		if (code == NO_CODE) throw new IllegalArgumentException("not a legal move: " + move);
+		if (code == AMBIGUOUS_CODE) throw new IllegalArgumentException("ambiguous move: " + move);
 		return code;
 	}
 	
