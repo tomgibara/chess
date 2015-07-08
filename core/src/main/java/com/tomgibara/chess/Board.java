@@ -224,9 +224,17 @@ public final class Board {
 				Move.possibleMovesTo(square).forEach(m -> {
 					Square s = m.from;
 					Piece p = pieces.get(s);
-					if (p == null || p.colour == this.colour) return;
-					if (p.type == PieceType.PAWN && !m.isPawnCapture()) return;
-					if (!m.isPossibleFor(p) || m.intermediateSquares.intersects(pieces.keySet())) return;
+					if (p == null || p.colour == this.colour || !m.isPossibleFor(p)) return;
+					switch (p.type) {
+					case PAWN:
+						if (!m.isPawnCapture()) return;
+						break;
+					case KING:
+						if (m.isCastling()) return;
+						break;
+					default:
+						if (m.intermediateSquares.intersects(pieces.keySet())) return;
+					}
 					map.put(s, m);
 				});
 				checks = map.immutable();

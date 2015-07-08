@@ -165,6 +165,15 @@ public class BoardTest extends TestCase {
 		assertFalse(moves.contains(move("e1-g1")));
 	}
 	
+	public void testRookAndKing() {
+		Position position = Notation.parseFENPosition("1R6/8/8/8/7P/8/1p1r4/2k1K3 b - - 0 63");
+		List<Move> moves = position.moves().moveList();
+		assertTrue(moves.contains(move("c1-b1")));
+		assertTrue(moves.contains(move("c1-c2")));
+		assertTrue(moves.contains(move("d2-d1")));
+		assertTrue(moves.contains(move("d2-c2")));
+	}
+	
 	private void assertSquaresAre(String expected, Collection<Square> squares) {
 		if (expected.isEmpty()) {
 			assertTrue(squares.isEmpty());

@@ -540,6 +540,8 @@ public final class Move implements Comparable<Move> {
 					File.distance(square.file, target.file) == 1;
 		}
 
+		// note only sufficient for determining attacks not by enemy king (ie sufficient for check tests)
+		// this is because an attack by a king could be a false positive if the king is moving into check
 		private boolean attacks(SquareMap<Piece> pieces, Squares occupied, Square vacated, Squares occupiedByOpposingColour) {
 			long bits = this.bits & occupiedByOpposingColour.mask();
 			for (int offset = 0; offset < 64 && bits != 0L; offset++, bits >>>= 1) {
@@ -548,9 +550,14 @@ public final class Move implements Comparable<Move> {
 				if (!move.isPossible()) continue;
 				Piece piece = pieces.get(move.from);
 				if (!move.isPossibleFor(piece)) continue;
-				if (piece.type == PieceType.PAWN) {
+				switch (piece.type) {
+				case PAWN:
 					if (move.isPawnCapture()) return true;
-				} else {
+					break;
+				case KING:
+					if (!move.isCastling()) return true;
+					break;
+				default:
 					if (occupied.disjoint(move.intermediateSquares, vacated)) return true;
 				}
 			}
