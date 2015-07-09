@@ -1,8 +1,10 @@
 package com.tomgibara.chess;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Arrays;
 
 import org.junit.Assert;
@@ -31,6 +33,16 @@ public class NotationTest {
 		}
 	};
 
+	@Test
+	public void testGameBasic1() throws IOException {
+		parse();
+	}
+	
+	@Test
+	public void testGameBasic2() throws IOException {
+		parse();
+	}
+	
 	@Test
 	public void testGameSimple() throws IOException {
 		Game game = parse();
