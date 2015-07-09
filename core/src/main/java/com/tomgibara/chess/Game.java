@@ -328,6 +328,12 @@ public class Game {
 			return true;
 		}
 		
+		@Override
+		public String toString() {
+			if (lastName.isEmpty()) return firstName;
+			return lastName + ", " + firstName;
+		}
+		
 	}
 
 }
