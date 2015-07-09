@@ -130,7 +130,7 @@ public class Notation {
 	//TODO doesn't process tags split over lines
 	private static Game parse(BufferedReader reader) throws IOException {
 		int phase = 0; // 0 - pre, 1 - tags, 2 - number, 3 white move, 4 - black move
-		Map<String, String> map = null;
+		Map<String, String> tags = null;
 		Sequence sequence = null;
 		while (true) {
 			String line = reader.readLine();
@@ -141,7 +141,7 @@ public class Notation {
 				case 0 : throw new IllegalArgumentException("missing tags");
 				case 1 : throw new IllegalArgumentException("missing move text");
 				case 3 : throw new IllegalArgumentException("missing move");
-				default: return new Game(map, sequence);
+				default: return new Game(tags, sequence);
 				}
 			}
 			if (line.isEmpty()) {
@@ -149,14 +149,20 @@ public class Notation {
 				case 0 :
 					continue;
 				case 1 :
-					//TODO support FEN tag and use for initial position as necessary
-					sequence = new Sequence();
+					String setup = tags.get("SetUp");
+					if (setup != null && setup.equals("1")) {
+						String fen = tags.get("FEN");
+						if (fen == null) throw new IllegalArgumentException("Setup = 1 with no FEN tag");
+						sequence = parseFENPosition(fen).sequence;
+					} else {
+						sequence = new Sequence();
+					}
 					phase = 2;
 					continue;
 				case 3:
 					throw new IllegalStateException();
 				default:
-					return new Game(map, sequence);
+					return new Game(tags, sequence);
 				}
 			}
 			if (line.charAt(0) == '%') continue;
@@ -166,7 +172,7 @@ public class Notation {
 			switch (phase) {
 			case 0 : { // before tags
 				phase = 1;
-				map = new HashMap<>();
+				tags = new HashMap<>();
 				/* non-empty line, fall through for processing */
 			}
 			case 1: {
@@ -179,7 +185,7 @@ public class Notation {
 					}
 					String tagName = line.substring(m.start(1), m.end(1));
 					String tagValue = line.substring(m.start(2), m.end(2));
-					map.put(tagName, unescapeTag(tagValue));
+					tags.put(tagName, unescapeTag(tagValue));
 				}
 				if (i != line.length()) {
 					if (!WS.matcher(line.substring(i, line.length())).matches()) {
@@ -194,7 +200,7 @@ public class Notation {
 				for (int i = 0; i < split.length; i++) {
 					String str = split[i];
 					if (str.equals("0-1") || str.equals("1-0") || str.equals("1/2-1/2") || str.equals("*")) {
-						return new Game(map, sequence);
+						return new Game(tags, sequence);
 					}
 					switch (phase) {
 					case 2 : {
@@ -204,10 +210,18 @@ public class Notation {
 						phase = 3;
 						continue;
 					}
-					case 3 :
+					case 3 : {
+						if (str.equals("...")) {
+							//TODO should verify
+						} else {
+							sequence.finalPosition().moves().make(str);
+						}
+						phase = 4;
+						continue;
+					}
 					case 4 : {
 						sequence.finalPosition().moves().make(str);
-						phase = phase == 3 ? 4 : 2;
+						phase = 2;
 						continue;
 					}
 					default: throw new IllegalStateException("phase " + phase);
