@@ -1,49 +1,17 @@
 package com.tomgibara.chess;
 
-import java.lang.reflect.Array;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
+import com.tomgibara.storage.Store;
+
 public class SquareMap<V> extends AbstractMap<Square, V> {
 
-	public interface Store<V> {
-		
-		Class<? extends V> valueType();
-		
-		int size();
-		
-		V get(int index);
-		
-		default V set(int index, V value) { throw new UnsupportedOperationException(); }
-		
-		default void clear() { throw new UnsupportedOperationException(); }
-		
-		//TODO use to check calls early?
-		default boolean isMutable() { return false; }
-		
-		default Store<V> immutable() { return isMutable() ? newImmutableStore(this) : this; }
-		
-		default Store<V> mutableCopy() {
-			V[] vs = (V[]) Array.newInstance(valueType(), 64);
-			for (int i = 0; i < 64; i++) {
-				vs[i] = get(i);
-			}
-			return new ArrayStore<V>(vs, size());
-		}
-	}
-
-	private static <V> int countNonNulls(V[] vs) {
-		int sum = 0;
-		for (V v : vs) { sum++; }
-		return sum;
-	}
-	
 	private static Squares squares(Store<?> store) {
 		// common special case
 		if (store.size() == 0) {
@@ -57,124 +25,10 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 		return store.isMutable() ? new MutableSquares(squares) : new Squares(squares);
 	}
 
-	private static <V> Store<V> newImmutableStore(Store<V> store) {
-		return new Store<V>() {
-			
-			@Override
-			public Class<? extends V> valueType() {
-				return store.valueType();
-			}
-
-			@Override
-			public int size() {
-				return store.size();
-			}
-			
-			@Override
-			public V get(int index) {
-				return store.get(index);
-			}
-		};
-	}
-	
-	private static class ArrayStore<V> implements Store<V> {
-
-		private final V[] values;
-		private int size;
-		
-		ArrayStore(V[] values) {
-			this.values = values;
-			size = countNonNulls(values);
-		}
-
-		ArrayStore(V[] values, int size) {
-			this.values = values;
-			this.size = size;
-		}
-		
-		@Override
-		public Class<? extends V> valueType() {
-			return (Class<? extends V>) values.getClass().getComponentType();
-		}
-
-		@Override
-		public int size() {
-			return size;
-		}
-		
-		@Override
-		public V get(int index) {
-			return values[index];
-		}
-
-		@Override
-		public V set(int index, V value) {
-			V old = values[index];
-			values[index] = value;
-			if (old != null) size --;
-			if (value != null) size ++;
-			return old;
-		}
-
-		@Override
-		public void clear() {
-			Arrays.fill(values, null);
-			size = 0;
-		}
-
-		@Override
-		public boolean isMutable() {
-			return true;
-		}
-		
-		@Override
-		public Store<V> immutable() {
-			return new ImmutableArrayStore<V>(this);
-		}
-		
-		@Override
-		public Store<V> mutableCopy() {
-			return new ArrayStore<V>(values.clone(), size);
-		}
-	}
-	
-	private static final class ImmutableArrayStore<V> implements Store<V> {
-
-		private final V[] values;
-		private final int size;
-
-		ImmutableArrayStore(ArrayStore<V> store) {
-			values = store.values.clone();
-			size = store.size;
-		}
-
-		@Override
-		public Class<? extends V> valueType() {
-			return (Class<? extends V>) values.getClass().getComponentType();
-		}
-
-		@Override
-		public int size() { return size; }
-
-		@Override
-		public V get(int index) { return values[index]; }
-
-		@Override
-		public Store<V> mutableCopy() { return new ArrayStore<V>(values.clone(), size); }
-		
-	}
-	
 	private final Store<V> store;
 	private EntrySet entrySet = null;
 	private final Squares squares;
 
-	public SquareMap(Class<? extends V> type) {
-		if (type == null) throw new IllegalArgumentException("null type");
-		V[] newArray = (V[]) Array.newInstance(type, 64);
-		store = new ArrayStore<V>(newArray, 0);
-		squares = squares(store);
-	}
-	
 	public SquareMap(Store<V> store) {
 		if (store == null) throw new IllegalArgumentException("null store");
 		this.store = store;
@@ -183,13 +37,13 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 	
 	// must be length 64
 	SquareMap(V[] values, int size) {
-		store = new ArrayStore<V>(values, size);
+		store = Store.newStore(values, size);
 		squares = squares(store);
 	}
 	
 	// must be length 64
 	SquareMap(V[] values) {
-		store = new ArrayStore<V>(values);
+		store = Store.newStore(values);
 		squares = squares(store);
 	}
 
@@ -198,7 +52,7 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 		for (int i = 0; i < 64; i++) {
 			V v = store.get(i);
 			if (v == null) continue;
-			counts[((Enum) v).ordinal()]++;
+			counts[((Enum<?>) v).ordinal()]++;
 		}
 		return counts;
 	}

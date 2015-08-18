@@ -2,6 +2,8 @@ package com.tomgibara.chess;
 
 import java.util.Iterator;
 
+import com.tomgibara.storage.Store;
+
 final public class Pieces extends SquareMap<Piece> {
 
 	private Pieces(Store<Piece> store) {

@@ -20,6 +20,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import com.tomgibara.storage.Store;
+
 public final class Move implements Comparable<Move> {
 
 	private static final int WHITE_PAWN     = 0b0000000001;
@@ -366,7 +368,7 @@ public final class Move implements Comparable<Move> {
 			this.size = size;
 			this.masks = masks;
 			
-			map = new SquareMap<Move>(new SquareMap.Store<Move>() {
+			map = new SquareMap<Move>(new Store<Move>() {
 
 				@Override
 				public Class<? extends Move> valueType() { return Move.class; }
@@ -378,6 +380,11 @@ public final class Move implements Comparable<Move> {
 				public Move get(int index) {
 					Move move = moves[ptr(index)];
 					return move.isPossible() ? move : null;
+				}
+
+				@Override
+				public int capacity() {
+					return 64;
 				}
 
 			});
