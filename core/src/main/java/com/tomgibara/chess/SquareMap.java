@@ -9,12 +9,13 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import com.tomgibara.storage.Store;
+import com.tomgibara.storage.Stores;
 
 public class SquareMap<V> extends AbstractMap<Square, V> {
 
 	private static Squares squares(Store<?> store) {
 		// common special case
-		if (store.size() == 0) {
+		if (store.count() == 0) {
 			return store.isMutable() ? new MutableSquares() : Squares.empty();
 		}
 		
@@ -36,14 +37,14 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 	}
 	
 	// must be length 64
-	SquareMap(V[] values, int size) {
-		store = Store.newStore(values, size);
+	SquareMap(V[] values, int count) {
+		store = Stores.objects(count, values);
 		squares = squares(store);
 	}
 	
 	// must be length 64
 	SquareMap(V[] values) {
-		store = Store.newStore(values);
+		store = Stores.objects(true, values);
 		squares = squares(store);
 	}
 
@@ -140,12 +141,12 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 	
 	@Override
 	public final int size() {
-		return store.size();
+		return store.count();
 	}
 	
 	@Override
 	public final boolean isEmpty() {
-		return store.size() == 0;
+		return store.count() == 0;
 	}
 	
 	@Override

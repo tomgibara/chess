@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import com.tomgibara.storage.AbstractStore;
 import com.tomgibara.storage.Store;
 
 public final class Move implements Comparable<Move> {
@@ -367,14 +368,19 @@ public final class Move implements Comparable<Move> {
 			this.bits = bits;
 			this.size = size;
 			this.masks = masks;
-			
-			map = new SquareMap<Move>(new Store<Move>() {
+
+			map = new SquareMap<Move>(new AbstractStore<Move>() {
 
 				@Override
-				public Class<? extends Move> valueType() { return Move.class; }
+				public Class<Move> valueType() { return Move.class; }
 
 				@Override
-				public int size() { return MoveList.this.size; }
+				public boolean isNullAllowed() {
+					return true;
+				}
+
+				@Override
+				public int count() { return MoveList.this.size; }
 
 				@Override
 				public Move get(int index) {
@@ -383,7 +389,7 @@ public final class Move implements Comparable<Move> {
 				}
 
 				@Override
-				public int capacity() {
+				public int size() {
 					return 64;
 				}
 
