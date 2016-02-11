@@ -180,9 +180,13 @@ public final class PositionMoves {
 		return null;
 	}
 	
+	int indexOfCode(int code) {
+		return Arrays.binarySearch(codes, code);
+	}
+	
 	int codeMatching(Move move) {
 		int code = code(move);
-		int i = Arrays.binarySearch(codes, code);
+		int i = indexOfCode(code);
 		if (i >= 0) return code;
 		i = -1 - i;
 		if (i >= codes.length) return NO_CODE;

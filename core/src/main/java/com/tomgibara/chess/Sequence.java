@@ -90,7 +90,7 @@ public class Sequence {
 		if (index >= positions.size()) throw new IllegalArgumentException();
 		return positions.get(index);
 	}
-	
+
 	public Sequence newContinuation() {
 		return new Sequence(this);
 	}

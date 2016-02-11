@@ -64,6 +64,13 @@ public final class Position {
 		}
 	}
 	
+	public int moveIndex() {
+		checkDiscarded();
+		if (isLast()) return -1;
+		Position next = sequence.position(index + 1);
+		return moves().indexOfCode(next.code);
+	}
+
 	public Position previous() {
 		checkDiscarded();
 		try {
@@ -89,7 +96,7 @@ public final class Position {
 	public MovePieces previousMovePieces() {
 		return code == NO_CODE ? null : PositionMoves.codePieces(code);
 	}
-	
+
 	public Pieces pieces() {
 		activate();
 		//TODO cache reference?
@@ -97,8 +104,8 @@ public final class Position {
 	}
 
 	public PositionMoves moves() {
-		activate();
 		if (moves == null) {
+			activate();
 			moves = new PositionMoves(this, board, Area.entire());
 		}
 		return moves;

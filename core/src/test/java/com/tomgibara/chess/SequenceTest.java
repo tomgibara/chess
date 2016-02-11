@@ -2,6 +2,7 @@ package com.tomgibara.chess;
 
 import static com.tomgibara.chess.Move.move;
 
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.TestCase;
@@ -12,6 +13,21 @@ public class SequenceTest extends TestCase {
 		Position position = new Sequence().position();
 		for (int i = 0; i < 70; i++) {
 			position = position.moves().make(0);
+		}
+	}
+
+	public void testRandomized() {
+		Random r = new Random(0L);
+		for (int j = 0; j < 1000; j++) {
+			Position position = new Sequence().position();
+			for (int i = 0; i < 30; i++) {
+				int count = position.moves().moveCount();
+				if (count == 0) break;
+				int index = r.nextInt(count);
+				Position subsequent = position.moves().make(index);
+				assertEquals(index, position.moveIndex());
+				position = subsequent;
+			}
 		}
 	}
 
