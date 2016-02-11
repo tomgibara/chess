@@ -21,7 +21,6 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import com.tomgibara.storage.AbstractStore;
-import com.tomgibara.storage.Store;
 
 public final class Move implements Comparable<Move> {
 
@@ -373,11 +372,6 @@ public final class Move implements Comparable<Move> {
 
 				@Override
 				public Class<Move> valueType() { return Move.class; }
-
-				@Override
-				public boolean isNullAllowed() {
-					return true;
-				}
 
 				@Override
 				public int count() { return MoveList.this.size; }

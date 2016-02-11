@@ -38,13 +38,13 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 	
 	// must be length 64
 	SquareMap(V[] values, int count) {
-		store = Stores.objects(count, values);
+		store = Stores.objectsAndNullCount(count, values);
 		squares = squares(store);
 	}
 	
 	// must be length 64
 	SquareMap(V[] values) {
-		store = Stores.objects(true, values);
+		store = Stores.objectsAndNull(values);
 		squares = squares(store);
 	}
 
