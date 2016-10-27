@@ -18,11 +18,8 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 		if (store.count() == 0) {
 			return store.isMutable() ? new MutableSquares() : Squares.empty();
 		}
-		
-		long squares = 0L;
-		for (int i = 0; i < 64; i++) {
-			if (store.get(i) != null) squares |= 1L << i;
-		}
+
+		long squares = store.population().getBits(0, 64) ;
 		return store.isMutable() ? new MutableSquares(squares) : new Squares(squares);
 	}
 
@@ -44,7 +41,7 @@ public class SquareMap<V> extends AbstractMap<Square, V> {
 	
 	// must be length 64
 	SquareMap(V[] values) {
-		store = Stores.objectsAndNull(values);
+		store = Stores.objects(values);
 		squares = squares(store);
 	}
 
